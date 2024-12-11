@@ -2,33 +2,34 @@ package com.history_walk.history_walk_i.ui.theme
 
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.sp
+import androidx.compose.ui.unit.TextUnit
+import androidx.compose.ui.unit.TextUnitType
+import com.history_walk.history_walk_i.R.font.inknut_antiqua_regular
+import com.history_walk.history_walk_i.R.font.jacquard_24_regular
 
-// Set of Material typography styles to start with
-val Typography = Typography(
-    bodyLarge = TextStyle(
-        fontFamily = FontFamily.Default,
+
+val InknutAntiqua = FontFamily(
+    Font(inknut_antiqua_regular, FontWeight.Normal)
+)
+
+
+val Jacquard_24 = FontFamily(
+    Font(jacquard_24_regular, FontWeight.Normal)
+)
+
+
+val TypographyForIntroScreen = Typography(
+    titleMedium = TextStyle(
+        fontFamily = InknutAntiqua,
         fontWeight = FontWeight.Normal,
-        fontSize = 16.sp,
-        lineHeight = 24.sp,
-        letterSpacing = 0.5.sp
-    )
-    /* Other default text styles to override
-    titleLarge = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Normal,
-        fontSize = 22.sp,
-        lineHeight = 28.sp,
-        letterSpacing = 0.sp
+        fontSize = TextUnit(24f, TextUnitType.Sp)
     ),
-    labelSmall = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Medium,
-        fontSize = 11.sp,
-        lineHeight = 16.sp,
-        letterSpacing = 0.5.sp
+    titleLarge = TextStyle(
+        fontFamily = Jacquard_24,
+        fontWeight = FontWeight.Normal,
+        fontSize = TextUnit(45f, TextUnitType.Sp)
     )
-    */
 )

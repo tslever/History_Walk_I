@@ -7,6 +7,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 
+
 @Composable
 fun HomeScreen() {
     Column(
@@ -15,6 +16,5 @@ fun HomeScreen() {
         verticalArrangement = Arrangement.Center
     ) {
         Text("Home Page", style = MaterialTheme.typography.headlineSmall)
-        // ... rest of your home UI
     }
 }
