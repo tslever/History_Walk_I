@@ -26,14 +26,14 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.history_walk.history_walk_i.ui.theme.HistoryWalkITheme
+import com.history_walk.history_walk_i.ui.theme.ThemeForIntroScreen
 
 
 class IntroActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            HistoryWalkITheme {
+            ThemeForIntroScreen {
                 IntroScreen(
                     onContinue = {
                         val sharedPref = getSharedPreferences("appPreferences", Context.MODE_PRIVATE)

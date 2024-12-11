@@ -5,8 +5,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.TextUnit
-import androidx.compose.ui.unit.TextUnitType
+import androidx.compose.ui.unit.sp
 import com.history_walk.history_walk_i.R.font.inknut_antiqua_regular
 import com.history_walk.history_walk_i.R.font.jacquard_24_regular
 
@@ -25,11 +24,25 @@ val TypographyForIntroScreen = Typography(
     titleMedium = TextStyle(
         fontFamily = InknutAntiqua,
         fontWeight = FontWeight.Normal,
-        fontSize = TextUnit(24f, TextUnitType.Sp)
+        fontSize = 24.sp
     ),
     titleLarge = TextStyle(
         fontFamily = Jacquard_24,
         fontWeight = FontWeight.Normal,
-        fontSize = TextUnit(45f, TextUnitType.Sp)
+        fontSize = 45.sp
+    )
+)
+
+
+val TypographyForHomeScreen = Typography(
+    titleMedium = TextStyle(
+        fontFamily = Jacquard_24,
+        fontWeight = FontWeight.Bold,
+        fontSize = 28.sp
+    ),
+    titleLarge = TextStyle(
+        fontFamily = Jacquard_24,
+        fontWeight = FontWeight.Bold,
+        fontSize = 40.sp
     )
 )

@@ -6,7 +6,7 @@ import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import com.history_walk.history_walk_i.ui.theme.HistoryWalkITheme
+import com.history_walk.history_walk_i.ui.theme.ThemeForIntroScreen
 
 
 class MainActivity : ComponentActivity() {
@@ -21,7 +21,7 @@ class MainActivity : ComponentActivity() {
             finish()
         } else {
             setContent {
-                HistoryWalkITheme {
+                ThemeForIntroScreen {
                     HomeScreen()
                 }
             }
