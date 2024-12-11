@@ -1,40 +1,60 @@
 package com.history_walk.history_walk_i
 
-import HomeScreen
-import android.content.Context
-import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import com.history_walk.history_walk_i.ui.theme.ThemeForHomeScreen
+import androidx.compose.runtime.Composable
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import com.history_walk.history_walk_i.ui.theme.ThemeForHistoryWalkI
+import com.history_walk.history_walk_i.viewmodel.ViewModelForHistoryWalkI
 
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        val sharedPref = getSharedPreferences("appPreferences", Context.MODE_PRIVATE)
-        val hasSeenHome = sharedPref.getBoolean("hasSeenHome", false)
-
-        if(!hasSeenHome) {
-            setContent {
-                ThemeForHomeScreen {
-                    HomeScreen(
-                        onContinue = {
-                            with(sharedPref.edit()) {
-                                putBoolean("hasSeenHome", true)
-                                apply()
-                            }
-                            startActivity(Intent(this, EpisodesActivity::class.java))
-                            finish()
-                        }
-                    )
-                }
+        setContent {
+            ThemeForHistoryWalkI {
+                HistoryWalkI()
             }
         }
-        else {
-            startActivity(Intent(this, EpisodesActivity::class.java))
-            finish()
+    }
+}
+
+@Composable
+fun HistoryWalkI(viewModel: ViewModelForHistoryWalkI = viewModel()) {
+    val navController = rememberNavController()
+    NavHost(navController = navController, startDestination = "intro") {
+        composable("intro") {
+            IntroScreen(
+                onContinue = {
+                    if (!viewModel.hasSeenHome()) {
+                        navController.navigate("home") {
+                            popUpTo("intro") { inclusive = true }
+                        }
+                    } else {
+                        navController.navigate("episodes") {
+                            popUpTo("intro") { inclusive = true }
+                        }
+                    }
+                }
+            )
+        }
+        composable("home") {
+            HomeScreen(
+                onContinue = {
+                    viewModel.setHasSeenHome()
+                    navController.navigate("episodes") {
+                        popUpTo("home") { inclusive = true }
+                    }
+                }
+            )
+        }
+        composable("episodes") {
+            EpisodesScreen()
         }
     }
 }

@@ -25,7 +25,7 @@ val shapes = Shapes()
 
 
 @Composable
-fun ThemeForIntroScreen(
+fun ThemeForHistoryWalkI(
     darkTheme: Boolean = false,
     content: @Composable () -> Unit
 ) {
@@ -33,39 +33,7 @@ fun ThemeForIntroScreen(
 
     MaterialTheme(
         colorScheme = colors,
-        typography = TypographyForIntroScreen,
-        shapes = shapes,
-        content = content
-    )
-}
-
-
-@Composable
-fun ThemeForHomeScreen(
-    darkTheme: Boolean = false,
-    content: @Composable () -> Unit
-) {
-    val colors = if (darkTheme) DarkColorScheme else LightColorScheme
-
-    MaterialTheme(
-        colorScheme = colors,
-        typography = TypographyForHomeScreen,
-        shapes = shapes,
-        content = content
-    )
-}
-
-
-@Composable
-fun ThemeForEpisodesScreen(
-    darkTheme: Boolean = false,
-    content: @Composable () -> Unit
-) {
-    val colors = if (darkTheme) DarkColorScheme else LightColorScheme
-
-    MaterialTheme(
-        colorScheme = colors,
-        typography = TypographyForEpisodesScreen,
+        typography = Typography,
         shapes = shapes,
         content = content
     )

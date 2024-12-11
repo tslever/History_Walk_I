@@ -20,7 +20,7 @@ val Jacquard_24 = FontFamily(
 )
 
 
-val TypographyForIntroScreen = Typography(
+val Typography = Typography(
     titleMedium = TextStyle(
         fontFamily = InknutAntiqua,
         fontWeight = FontWeight.Normal,
@@ -30,33 +30,5 @@ val TypographyForIntroScreen = Typography(
         fontFamily = Jacquard_24,
         fontWeight = FontWeight.Normal,
         fontSize = 45.sp
-    )
-)
-
-
-val TypographyForHomeScreen = Typography(
-    titleMedium = TextStyle(
-        fontFamily = Jacquard_24,
-        fontWeight = FontWeight.Bold,
-        fontSize = 28.sp
-    ),
-    titleLarge = TextStyle(
-        fontFamily = Jacquard_24,
-        fontWeight = FontWeight.Bold,
-        fontSize = 40.sp
-    )
-)
-
-
-val TypographyForEpisodesScreen = Typography(
-    titleMedium = TextStyle(
-        fontFamily = Jacquard_24,
-        fontWeight = FontWeight.Bold,
-        fontSize = 28.sp
-    ),
-    titleLarge = TextStyle(
-        fontFamily = Jacquard_24,
-        fontWeight = FontWeight.Bold,
-        fontSize = 40.sp
     )
 )
