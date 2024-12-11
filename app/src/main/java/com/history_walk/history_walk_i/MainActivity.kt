@@ -14,34 +14,27 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         val sharedPref = getSharedPreferences("appPreferences", Context.MODE_PRIVATE)
-        val hasSeenIntro = sharedPref.getBoolean("hasSeenIntro", false)
         val hasSeenHome = sharedPref.getBoolean("hasSeenHome", false)
 
-        when {
-            !hasSeenIntro -> {
-                startActivity(Intent(this, IntroActivity::class.java))
-                finish()
-            }
-            !hasSeenHome -> {
-                setContent {
-                    ThemeForHomeScreen {
-                        HomeScreen(
-                            onContinue = {
-                                with(sharedPref.edit()) {
-                                    putBoolean("hasSeenHome", true)
-                                    apply()
-                                }
-                                startActivity(Intent(this, EpisodesActivity::class.java))
-                                finish()
+        if(!hasSeenHome) {
+            setContent {
+                ThemeForHomeScreen {
+                    HomeScreen(
+                        onContinue = {
+                            with(sharedPref.edit()) {
+                                putBoolean("hasSeenHome", true)
+                                apply()
                             }
-                        )
-                    }
+                            startActivity(Intent(this, EpisodesActivity::class.java))
+                            finish()
+                        }
+                    )
                 }
             }
-            else -> {
-                startActivity(Intent(this, EpisodesActivity::class.java))
-                finish()
-            }
+        }
+        else {
+            startActivity(Intent(this, EpisodesActivity::class.java))
+            finish()
         }
     }
 }

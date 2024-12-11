@@ -36,12 +36,7 @@ class IntroActivity : ComponentActivity() {
             ThemeForIntroScreen {
                 IntroScreen(
                     onContinue = {
-                        val sharedPref = getSharedPreferences("appPreferences", Context.MODE_PRIVATE)
-                        with(sharedPref.edit()) {
-                            putBoolean("hasSeenIntro", true)
-                            apply()
-                        }
-                        startActivity(Intent(this@IntroActivity, MainActivity::class.java))
+                        startActivity(Intent(this, MainActivity::class.java))
                         finish()
                     }
                 )
