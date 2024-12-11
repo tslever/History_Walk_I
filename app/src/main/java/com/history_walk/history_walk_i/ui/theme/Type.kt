@@ -46,3 +46,17 @@ val TypographyForHomeScreen = Typography(
         fontSize = 40.sp
     )
 )
+
+
+val TypographyForEpisodesScreen = Typography(
+    titleMedium = TextStyle(
+        fontFamily = Jacquard_24,
+        fontWeight = FontWeight.Bold,
+        fontSize = 28.sp
+    ),
+    titleLarge = TextStyle(
+        fontFamily = Jacquard_24,
+        fontWeight = FontWeight.Bold,
+        fontSize = 40.sp
+    )
+)

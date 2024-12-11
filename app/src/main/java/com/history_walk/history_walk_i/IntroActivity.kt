@@ -55,9 +55,10 @@ class IntroActivity : ComponentActivity() {
 fun IntroScreen(onContinue: () -> Unit) {
     Box {
         Image(
-            painter = painterResource(id = R.drawable.catherine_of_aragon),
-            contentDescription = "portrait of Catherine of Aragon",
-            contentScale = ContentScale.Crop
+            painter = painterResource(id = R.drawable.portrait_of_catherine_of_aragon_by_juan_de_flandes),
+            contentDescription = "portrait of Catherine of Aragon by Juan de Flandes",
+            contentScale = ContentScale.Crop,
+            modifier = Modifier.fillMaxSize()
         )
         Column(
             modifier = Modifier
@@ -76,8 +77,8 @@ fun IntroScreen(onContinue: () -> Unit) {
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 StrokedText(
-                    colorOfFill = Color(0xFFCF0E0E),
-                    colorOfStroke = Color(0xFF000000),
+                    colorOfFill = Color(0xFFCF0E0E), // ARGB
+                    colorOfStroke = Color(0xFF000000), // ARGB
                     modifier = Modifier,
                     text = "Catherine of Aragon",
                     textStyle = MaterialTheme.typography.titleLarge,

@@ -54,3 +54,19 @@ fun ThemeForHomeScreen(
         content = content
     )
 }
+
+
+@Composable
+fun ThemeForEpisodesScreen(
+    darkTheme: Boolean = false,
+    content: @Composable () -> Unit
+) {
+    val colors = if (darkTheme) DarkColorScheme else LightColorScheme
+
+    MaterialTheme(
+        colorScheme = colors,
+        typography = TypographyForEpisodesScreen,
+        shapes = shapes,
+        content = content
+    )
+}

@@ -23,7 +23,8 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name="com.history_walk.history_walk_i.IntroActivity" />
+        <activity android:name="com.history_walk.history_walk_i.IntroActivity" android:exported="false"/>
+        <activity android:name="com.history_walk.history_walk_i.EpisodesActivity" android:exported="false"/>
     </application>
 
 </manifest>

@@ -6,7 +6,7 @@ import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import com.history_walk.history_walk_i.ui.theme.ThemeForIntroScreen
+import com.history_walk.history_walk_i.ui.theme.ThemeForHomeScreen
 
 
 class MainActivity : ComponentActivity() {
@@ -15,15 +15,32 @@ class MainActivity : ComponentActivity() {
 
         val sharedPref = getSharedPreferences("appPreferences", Context.MODE_PRIVATE)
         val hasSeenIntro = sharedPref.getBoolean("hasSeenIntro", false)
+        val hasSeenHome = sharedPref.getBoolean("hasSeenHome", false)
 
-        if (!hasSeenIntro) {
-            startActivity(Intent(this, IntroActivity::class.java))
-            finish()
-        } else {
-            setContent {
-                ThemeForIntroScreen {
-                    HomeScreen()
+        when {
+            !hasSeenIntro -> {
+                startActivity(Intent(this, IntroActivity::class.java))
+                finish()
+            }
+            !hasSeenHome -> {
+                setContent {
+                    ThemeForHomeScreen {
+                        HomeScreen(
+                            onContinue = {
+                                with(sharedPref.edit()) {
+                                    putBoolean("hasSeenHome", true)
+                                    apply()
+                                }
+                                startActivity(Intent(this, EpisodesActivity::class.java))
+                                finish()
+                            }
+                        )
+                    }
                 }
+            }
+            else -> {
+                startActivity(Intent(this, EpisodesActivity::class.java))
+                finish()
             }
         }
     }
