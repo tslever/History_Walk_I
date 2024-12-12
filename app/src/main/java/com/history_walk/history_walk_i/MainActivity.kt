@@ -15,7 +15,6 @@ import com.history_walk.history_walk_i.viewmodel.ViewModelForHistoryWalkI
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
         setContent {
             ThemeForHistoryWalkI {
                 HistoryWalkI()
@@ -54,11 +53,17 @@ fun HistoryWalkI(viewModel: ViewModelForHistoryWalkI = viewModel()) {
                 onUpgrade = {
                     // TODO
                 },
+                onGoToSettings = {
+                    navController.navigate("settings")
+                },
                 viewModel = viewModel
             )
         }
         composable("episodes") {
             EpisodesScreen()
+        }
+        composable("settings") {
+            SettingsScreen()
         }
     }
 }

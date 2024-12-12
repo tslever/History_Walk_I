@@ -45,7 +45,7 @@ val Typography = Typography(
     displayMedium = TextStyle(
         fontFamily = Jacques_Francois,
         fontWeight = FontWeight.Normal,
-        fontSize = 18.sp
+        fontSize = 16.sp
     ),
     displaySmall = TextStyle(
         fontFamily = Jacques_Francois,

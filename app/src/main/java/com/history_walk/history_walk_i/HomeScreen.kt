@@ -12,11 +12,14 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MaterialTheme.typography
 import androidx.compose.material3.Text
@@ -42,6 +45,7 @@ import com.history_walk.history_walk_i.viewmodel.ViewModelForHistoryWalkI
 @Composable
 fun HomeScreen(
     onGoToEpisodes: () -> Unit,
+    onGoToSettings: () -> Unit,
     onUpgrade: () -> Unit,
     viewModel: ViewModelForHistoryWalkI
 ) {
@@ -74,7 +78,7 @@ fun HomeScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier
                     .background(color = Color(0x80D9D9D9))
-                    .padding(top = 8.dp, bottom = 8.dp)
+                    .padding(top = 2.dp, bottom = 2.dp)
             ) {
                 Text(
                     text = "Welcome to History Walk!",
@@ -169,10 +173,28 @@ fun HomeScreen(
                     )
                 }
             }
-            Text(
-                text = "settings",
-                style = typography.displaySmall
-            )
+            Button(
+                onClick = onGoToSettings,
+                modifier = Modifier
+                    .border(width = 1.dp, color = Color.Black)
+                    .defaultMinSize(minHeight = 48.dp),
+                shape = MaterialTheme.shapes.small
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Settings,
+                        contentDescription = "Settings",
+                        tint = Color.Black
+                    )
+                    Text(
+                        text = "settings",
+                        style = typography.displaySmall,
+                        color = Color.Black
+                    )
+                }
+            }
         }
     }
 }
