@@ -8,6 +8,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import com.history_walk.history_walk_i.R.font.inknut_antiqua_regular
 import com.history_walk.history_walk_i.R.font.jacquard_24_regular
+import com.history_walk.history_walk_i.R.font.jacques_francois_regular
 
 
 val InknutAntiqua = FontFamily(
@@ -17,6 +18,11 @@ val InknutAntiqua = FontFamily(
 
 val Jacquard_24 = FontFamily(
     Font(jacquard_24_regular, FontWeight.Normal)
+)
+
+
+val Jacques_Francois = FontFamily(
+    Font(jacques_francois_regular, FontWeight.Normal)
 )
 
 
@@ -30,5 +36,20 @@ val Typography = Typography(
         fontFamily = Jacquard_24,
         fontWeight = FontWeight.Normal,
         fontSize = 45.sp
+    ),
+    displayLarge = TextStyle(
+        fontFamily = Jacques_Francois,
+        fontWeight = FontWeight.Normal,
+        fontSize = 24.sp
+    ),
+    displayMedium = TextStyle(
+        fontFamily = Jacques_Francois,
+        fontWeight = FontWeight.Normal,
+        fontSize = 18.sp
+    ),
+    displaySmall = TextStyle(
+        fontFamily = Jacques_Francois,
+        fontWeight = FontWeight.Normal,
+        fontSize = 13.5.sp
     )
 )

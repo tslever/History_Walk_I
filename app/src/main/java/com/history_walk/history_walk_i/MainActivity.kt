@@ -45,11 +45,14 @@ fun HistoryWalkI(viewModel: ViewModelForHistoryWalkI = viewModel()) {
         }
         composable("home") {
             HomeScreen(
-                onContinue = {
+                onGoToEpisodes = {
                     viewModel.setHasSeenHome()
                     navController.navigate("episodes") {
                         popUpTo("home") { inclusive = true }
                     }
+                },
+                onUpgrade = {
+                    // TODO
                 }
             )
         }
