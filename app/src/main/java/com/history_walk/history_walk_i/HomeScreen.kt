@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
@@ -138,7 +137,6 @@ fun HomeScreen(
                     modifier = Modifier
                         .border(width = 1.dp, color = Color.Black)
                         .defaultMinSize(minHeight = 48.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD9D9D9)),
                     shape = MaterialTheme.shapes.small
                 ) {
                     Text(
@@ -162,7 +160,6 @@ fun HomeScreen(
                     modifier = Modifier
                         .border(width = 1.dp, color = Color.Black)
                         .defaultMinSize(minHeight = 48.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD9D9D9)),
                     shape = MaterialTheme.shapes.small
                 ) {
                     Text(

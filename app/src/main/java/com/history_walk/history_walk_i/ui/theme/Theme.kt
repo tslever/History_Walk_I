@@ -6,20 +6,41 @@ import androidx.compose.material3.Shapes
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 
 
 private val DarkColorScheme = darkColorScheme(
-    primary = Purple80,
-    secondary = PurpleGrey80,
-    tertiary = Pink80
+    primary = Color(0xFFAAAAAA),
+    onPrimary = Color.Black,
+    secondary = Color(0xFFBBBBBB),
+    onSecondary = Color.Black,
+    tertiary = Color(0xFFCCCCCC),
+    onTertiary = Color.Black,
+    background = Color(0xFF222222),
+    onBackground = Color.White,
+    surface = Color(0xFF333333),
+    onSurface = Color.White,
+    surfaceVariant = Color(0xFF444444),
+    onSurfaceVariant = Color.White,
+    outline = Color.Gray
 )
 
 
 private val LightColorScheme = lightColorScheme(
-    primary = Purple40,
-    secondary = PurpleGrey40,
-    tertiary = Pink40
+    primary = Color(0xFFD9D9D9),
+    onPrimary = Color.Black,
+    secondary = Color(0xFFC0C0C0),
+    onSecondary = Color.Black,
+    tertiary = Color(0xFFBEBEBE),
+    onTertiary = Color.Black,
+    background = Color(0xFFE0E0E0),
+    onBackground = Color.Black,
+    surface = Color(0xFFF2F2F2),
+    onSurface = Color.Black,
+    surfaceVariant = Color(0xFFDDDDDD),
+    onSurfaceVariant = Color.Black,
+    outline = Color.Gray
 )
 
 
@@ -36,7 +57,6 @@ fun ThemeForHistoryWalkI(
     content: @Composable () -> Unit
 ) {
     val colors = if (darkTheme) DarkColorScheme else LightColorScheme
-
     MaterialTheme(
         colorScheme = colors,
         typography = Typography,

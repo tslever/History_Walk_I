@@ -65,9 +65,9 @@ fun IntroScreen(onContinue: () -> Unit) {
                     modifier = Modifier
                         .border(width = 1.dp, color = Color.Black)
                         .defaultMinSize(minHeight = 48.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFFD9D9D9)
-                    ),
+                    //colors = ButtonDefaults.buttonColors(
+                    //    containerColor = Color(0xFFD9D9D9)
+                    //),
                     shape = MaterialTheme.shapes.small
                 ) {
                     Text(
