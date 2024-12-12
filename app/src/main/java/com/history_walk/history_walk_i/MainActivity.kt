@@ -53,7 +53,8 @@ fun HistoryWalkI(viewModel: ViewModelForHistoryWalkI = viewModel()) {
                 },
                 onUpgrade = {
                     // TODO
-                }
+                },
+                viewModel = viewModel
             )
         }
         composable("episodes") {

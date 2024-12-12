@@ -10,6 +10,10 @@ import kotlinx.coroutines.launch
 class ViewModelForHistoryWalkI (application: Application) : AndroidViewModel(application) {
     private val sharedPref = application.getSharedPreferences("appPreferences", Context.MODE_PRIVATE)
 
+    fun getSelectedPace(): String {
+        return sharedPref.getString("selectedPace", "1 real step = few historical steps") ?: "1 real step = few historical steps"
+    }
+
     fun hasSeenHome(): Boolean {
         return sharedPref.getBoolean("hasSeenHome", false)
     }
@@ -17,6 +21,12 @@ class ViewModelForHistoryWalkI (application: Application) : AndroidViewModel(app
     fun setHasSeenHome() {
         viewModelScope.launch {
             sharedPref.edit().putBoolean("hasSeenHome", true).apply()
+        }
+    }
+
+    fun setSelectedPace(pace: String) {
+        viewModelScope.launch {
+            sharedPref.edit().putString("selectedPace", pace).apply()
         }
     }
 }

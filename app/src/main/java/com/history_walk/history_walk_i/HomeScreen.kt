@@ -19,6 +19,7 @@ import androidx.compose.material3.MaterialTheme.typography
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -31,15 +32,27 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.history_walk.history_walk_i.viewmodel.ViewModelForHistoryWalkI
 
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomeScreen(onGoToEpisodes: () -> Unit, onUpgrade: () -> Unit) {
+fun HomeScreen(
+    onGoToEpisodes: () -> Unit,
+    onUpgrade: () -> Unit,
+    viewModel: ViewModelForHistoryWalkI
+) {
 
-    val listOfPaces = listOf("1 real step = few historical steps", "1 real step = some historical steps", "1 real step = many historical steps")
-    var selectedPace by remember { mutableStateOf(listOfPaces[0]) }
+    val listOfPaces = listOf(
+        "1 real step = few historical steps",
+        "1 real step = some historical steps",
+        "1 real step = many historical steps"
+    )
+    var selectedPace by remember { mutableStateOf("") }
     var dropdownMenuOfPacesIsExpanded by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        selectedPace = viewModel.getSelectedPace()
+    }
 
     Box {
         Image(
@@ -49,12 +62,16 @@ fun HomeScreen(onGoToEpisodes: () -> Unit, onUpgrade: () -> Unit) {
             modifier = Modifier.fillMaxSize().alpha(alpha = 0.5f)
         )
         Column(
-            modifier = Modifier.fillMaxSize().padding(top = 32.dp, start = 8.dp, end = 8.dp, bottom = 21.dp),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(top = 32.dp, start = 8.dp, end = 8.dp, bottom = 21.dp),
             verticalArrangement = Arrangement.SpaceBetween
         ) {
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.background(color = Color(0x80D9D9D9)).padding(top = 8.dp, bottom = 8.dp)
+                modifier = Modifier
+                    .background(color = Color(0x80D9D9D9))
+                    .padding(top = 8.dp, bottom = 8.dp)
             ) {
                 Text(
                     text = "Welcome to History Walk!",
@@ -98,6 +115,7 @@ fun HomeScreen(onGoToEpisodes: () -> Unit, onUpgrade: () -> Unit) {
                                 onClick = {
                                     selectedPace = listOfPaces[index]
                                     dropdownMenuOfPacesIsExpanded = false
+                                    viewModel.setSelectedPace(selectedPace)
                                 },
                                 contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding
                             )
