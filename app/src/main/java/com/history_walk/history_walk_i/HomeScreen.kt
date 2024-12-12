@@ -1,5 +1,6 @@
 package com.history_walk.history_walk_i
 
+import StyledButton
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -10,7 +11,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
@@ -127,11 +127,11 @@ fun HomeScreen(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Button(
-                    onClick = onGoToEpisodes
-                ) {
-                    Text("Go to Episodes")
-                }
+                StyledButton(
+                    onClick = onGoToEpisodes,
+                    text = "Go to Episodes",
+                    textStyle = typography.displayLarge
+                )
             }
             Column (
                 horizontalAlignment = Alignment.CenterHorizontally
@@ -142,9 +142,11 @@ fun HomeScreen(
                     textAlign = TextAlign.Center
                 )
                 Spacer(modifier = Modifier.height(8.dp))
-                Button(onClick = onUpgrade) {
-                    Text("Upgrade Now")
-                }
+                StyledButton(
+                    onClick = onUpgrade,
+                    text = "Upgrade Now",
+                    textStyle = typography.displaySmall
+                )
             }
             Text(
                 text = "settings",

@@ -1,5 +1,6 @@
 package com.history_walk.history_walk_i
 
+import StyledButton
 import android.graphics.Paint
 import android.graphics.Typeface.DEFAULT
 import androidx.compose.foundation.Canvas
@@ -12,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
+import androidx.compose.material3.MaterialTheme.typography
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -62,9 +64,11 @@ fun IntroScreen(onContinue: () -> Unit) {
                     widthOfStroke = 4f
                 )
                 Spacer(modifier = Modifier.height(16.dp))
-                Button(onClick = onContinue) {
-                    Text("Continue")
-                }
+                StyledButton(
+                    onClick = onContinue,
+                    text = "Continue",
+                    textStyle = typography.displaySmall
+                )
             }
         }
     }
