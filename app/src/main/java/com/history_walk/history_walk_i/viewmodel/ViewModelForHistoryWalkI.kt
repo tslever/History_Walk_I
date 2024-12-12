@@ -11,7 +11,7 @@ class ViewModelForHistoryWalkI (application: Application) : AndroidViewModel(app
     private val sharedPref = application.getSharedPreferences("appPreferences", Context.MODE_PRIVATE)
 
     fun getSelectedPace(): String {
-        return sharedPref.getString("selectedPace", "1 real step = few historical steps") ?: "1 real step = few historical steps"
+        return sharedPref.getString("selectedPace", "1 real step = 1 historical step") ?: "1 real step = 1 historical step"
     }
 
     fun hasSeenHome(): Boolean {
@@ -28,5 +28,12 @@ class ViewModelForHistoryWalkI (application: Application) : AndroidViewModel(app
         viewModelScope.launch {
             sharedPref.edit().putString("selectedPace", pace).apply()
         }
+    }
+
+    fun getHistoricalStepsPerRealStepValue(): Int {
+        val pace = getSelectedPace()
+        val regex = Regex("1 real step = (\\d+) historical step[s]?")
+        val match = regex.find(pace)
+        return match?.groupValues?.get(1)?.toIntOrNull() ?: 1
     }
 }

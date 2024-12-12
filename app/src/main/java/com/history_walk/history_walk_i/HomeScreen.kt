@@ -50,11 +50,8 @@ fun HomeScreen(
     viewModel: ViewModelForHistoryWalkI
 ) {
 
-    val listOfPaces = listOf(
-        "1 real step = few historical steps",
-        "1 real step = some historical steps",
-        "1 real step = many historical steps"
-    )
+    val numberOfHistoricalStepsPerRealStep = listOf(1, 2, 3)
+    val listOfPaces = numberOfHistoricalStepsPerRealStep.map { "1 real step = $it historical steps" }
     var selectedPace by remember { mutableStateOf("") }
     var dropdownMenuOfPacesIsExpanded by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
@@ -66,25 +63,37 @@ fun HomeScreen(
             painter = painterResource(id = R.drawable.portrait_of_catherine_of_aragon_by_lucas_horenbout),
             contentDescription = "portrait of Catherine of Aragon by Lucas Horenbout",
             contentScale = ContentScale.Crop,
-            modifier = Modifier.fillMaxSize().alpha(alpha = 0.5f)
+            modifier = Modifier
+                .fillMaxSize()
+                .alpha(alpha = 0.5f)
         )
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = 32.dp, start = 8.dp, end = 8.dp, bottom = 21.dp),
+                .padding(
+                    top = 32.dp,
+                    start = 8.dp,
+                    end = 8.dp,
+                    bottom = 21.dp
+                ),
             verticalArrangement = Arrangement.SpaceBetween
         ) {
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier
                     .background(color = Color(0x80D9D9D9))
-                    .padding(top = 2.dp, bottom = 2.dp)
+                    .padding(
+                        top = 2.dp,
+                        bottom = 2.dp
+                    )
             ) {
                 Text(
                     text = "Welcome to History Walk!",
                     style = typography.displayLarge
                 )
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(
+                    modifier = Modifier.height(16.dp)
+                )
                 Text(
                     text = "With this app you’ll be able to  learn loads of fascinating history while getting exercise. Every step you take translates into movement across the map. Whenever you reach an event icon, you’ll learn a little more about the life of Catherine of Aragon, the first Queen of Henry VIII of England.\n\nGo to the Episodes page to begin the adventure!",
                     style = typography.displayMedium,
@@ -118,11 +127,11 @@ fun HomeScreen(
                         expanded = dropdownMenuOfPacesIsExpanded,
                         onDismissRequest = { dropdownMenuOfPacesIsExpanded = false }
                     ) {
-                        listOfPaces.forEachIndexed { index, text ->
+                        listOfPaces.forEach { pace ->
                             DropdownMenuItem(
-                                text = { Text(text = text, style = typography.displaySmall) },
+                                text = { Text(text = pace, style = typography.displaySmall) },
                                 onClick = {
-                                    selectedPace = listOfPaces[index]
+                                    selectedPace = pace
                                     dropdownMenuOfPacesIsExpanded = false
                                     viewModel.setSelectedPace(selectedPace)
                                 },
@@ -139,7 +148,10 @@ fun HomeScreen(
                 Button(
                     onClick = onGoToEpisodes,
                     modifier = Modifier
-                        .border(width = 1.dp, color = Color.Black)
+                        .border(
+                            width = 1.dp,
+                            color = Color.Black
+                        )
                         .defaultMinSize(minHeight = 48.dp),
                     shape = MaterialTheme.shapes.small
                 ) {
@@ -162,7 +174,10 @@ fun HomeScreen(
                 Button(
                     onClick = onUpgrade,
                     modifier = Modifier
-                        .border(width = 1.dp, color = Color.Black)
+                        .border(
+                            width = 1.dp,
+                            color = Color.Black
+                        )
                         .defaultMinSize(minHeight = 48.dp),
                     shape = MaterialTheme.shapes.small
                 ) {
@@ -176,7 +191,10 @@ fun HomeScreen(
             Button(
                 onClick = onGoToSettings,
                 modifier = Modifier
-                    .border(width = 1.dp, color = Color.Black)
+                    .border(
+                        width = 1.dp,
+                        color = Color.Black
+                    )
                     .defaultMinSize(minHeight = 48.dp),
                 shape = MaterialTheme.shapes.small
             ) {

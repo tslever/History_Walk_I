@@ -63,7 +63,8 @@ fun HistoryWalkI(viewModel: ViewModelForHistoryWalkI = viewModel()) {
             EpisodesScreen(
                 onGoToSettings = {
                     navController.navigate("settings")
-                }
+                },
+                viewModel = viewModel
             )
         }
         composable("settings") {

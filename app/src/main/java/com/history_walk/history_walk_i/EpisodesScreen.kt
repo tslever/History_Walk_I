@@ -30,6 +30,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import com.history_walk.history_walk_i.viewmodel.ViewModelForHistoryWalkI
 
 
 data class Episode(
@@ -41,19 +42,24 @@ data class Episode(
 
 
 @Composable
-fun EpisodesScreen(onGoToSettings: () -> Unit) {
+fun EpisodesScreen(
+    onGoToSettings: () -> Unit,
+    viewModel: ViewModelForHistoryWalkI
+) {
+
+    val numberOfHistoricalStepsPerRealStep = viewModel.getHistoricalStepsPerRealStepValue()
 
     val episodes = listOf(
-        Episode(index = 1, isCompleted = false, isAvailable = true, stepsRequired = 100),
-        Episode(index = 2, isCompleted = false, isAvailable = false, stepsRequired = 200),
-        Episode(index = 3, isCompleted = false, isAvailable = false, stepsRequired = 150),
-        Episode(index = 4, isCompleted = false, isAvailable = false, stepsRequired = 300),
-        Episode(index = 5, isCompleted = false, isAvailable = false, stepsRequired = 250),
-        Episode(index = 6, isCompleted = false, isAvailable = false, stepsRequired = 100),
-        Episode(index = 7, isCompleted = false, isAvailable = false, stepsRequired = 200),
-        Episode(index = 8, isCompleted = false, isAvailable = false, stepsRequired = 150),
-        Episode(index = 9, isCompleted = false, isAvailable = false, stepsRequired = 300),
-        Episode(index = 10, isCompleted = false, isAvailable = false, stepsRequired = 250)
+        Episode(index = 1, isCompleted = false, isAvailable = true, stepsRequired = 198 / numberOfHistoricalStepsPerRealStep),
+        Episode(index = 2, isCompleted = false, isAvailable = false, stepsRequired = 396 / numberOfHistoricalStepsPerRealStep),
+        Episode(index = 3, isCompleted = false, isAvailable = false, stepsRequired = 300 / numberOfHistoricalStepsPerRealStep),
+        Episode(index = 4, isCompleted = false, isAvailable = false, stepsRequired = 600 / numberOfHistoricalStepsPerRealStep),
+        Episode(index = 5, isCompleted = false, isAvailable = false, stepsRequired = 498 / numberOfHistoricalStepsPerRealStep),
+        Episode(index = 6, isCompleted = false, isAvailable = false, stepsRequired = 198 / numberOfHistoricalStepsPerRealStep),
+        Episode(index = 7, isCompleted = false, isAvailable = false, stepsRequired = 396 / numberOfHistoricalStepsPerRealStep),
+        Episode(index = 8, isCompleted = false, isAvailable = false, stepsRequired = 300 / numberOfHistoricalStepsPerRealStep),
+        Episode(index = 9, isCompleted = false, isAvailable = false, stepsRequired = 600 / numberOfHistoricalStepsPerRealStep),
+        Episode(index = 10, isCompleted = false, isAvailable = false, stepsRequired = 498 / numberOfHistoricalStepsPerRealStep)
     )
 
     Box {
