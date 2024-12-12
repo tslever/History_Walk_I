@@ -16,7 +16,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shadow
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.ContentScale
@@ -74,26 +77,21 @@ fun StrokedText(
     modifier: Modifier,
     text: String,
     textStyle: TextStyle,
-    widthOfStroke: Float
+    widthOfStroke: Float,
 ) {
     Box(modifier = modifier) {
-        Canvas(modifier = Modifier.matchParentSize()) {
-            drawContext.canvas.nativeCanvas.apply {
-                val paint = Paint().apply {
-                    this.textSize = textStyle.fontSize.toPx()
-                    this.typeface = DEFAULT
-                    this.style = Paint.Style.STROKE
-                    this.strokeWidth = widthOfStroke
-                    this.color = colorOfStroke.toArgb()
-                    this.textAlign = Paint.Align.CENTER
-                }
-                drawText(text, size.width / 2, size.height / 2, paint)
-            }
-        }
         Text(
             text = text,
-            style = textStyle.copy(color = colorOfFill),
-            modifier = Modifier.align(Alignment.Center)
+            style = textStyle.copy(
+                color = colorOfStroke,
+                drawStyle = Stroke(width = widthOfStroke)
+            )
+        )
+        Text(
+            text = text,
+            style = textStyle.copy(
+                color = colorOfFill
+            )
         )
     }
 }
