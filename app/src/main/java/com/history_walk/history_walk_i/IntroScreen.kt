@@ -1,29 +1,25 @@
 package com.history_walk.history_walk_i
 
-import StyledButton
-import android.graphics.Paint
-import android.graphics.Typeface.DEFAULT
-import androidx.compose.foundation.Canvas
+
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
-import androidx.compose.material3.MaterialTheme.typography
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.nativeCanvas
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
@@ -64,11 +60,22 @@ fun IntroScreen(onContinue: () -> Unit) {
                     widthOfStroke = 4f
                 )
                 Spacer(modifier = Modifier.height(16.dp))
-                StyledButton(
+                Button(
                     onClick = onContinue,
-                    text = "Continue",
-                    textStyle = typography.displaySmall
-                )
+                    modifier = Modifier
+                        .border(width = 1.dp, color = Color.Black)
+                        .defaultMinSize(minHeight = 48.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFFD9D9D9)
+                    ),
+                    shape = MaterialTheme.shapes.small
+                ) {
+                    Text(
+                        "Continue",
+                        style = MaterialTheme.typography.displaySmall,
+                        color = Color.Black
+                    )
+                }
             }
         }
     }

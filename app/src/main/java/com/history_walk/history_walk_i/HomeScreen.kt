@@ -1,20 +1,24 @@
 package com.history_walk.history_walk_i
 
-import StyledButton
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MaterialTheme.typography
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
@@ -103,7 +107,9 @@ fun HomeScreen(
                         onValueChange =  { },
                         readOnly = true,
                         textStyle = typography.displaySmall,
-                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = dropdownMenuOfPacesIsExpanded) }
+                        trailingIcon = {
+                            ExposedDropdownMenuDefaults.TrailingIcon(expanded = dropdownMenuOfPacesIsExpanded)
+                        }
                     )
                     ExposedDropdownMenu(
                         expanded = dropdownMenuOfPacesIsExpanded,
@@ -127,11 +133,20 @@ fun HomeScreen(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                StyledButton(
+                Button(
                     onClick = onGoToEpisodes,
-                    text = "Go to Episodes",
-                    textStyle = typography.displayLarge
-                )
+                    modifier = Modifier
+                        .border(width = 1.dp, color = Color.Black)
+                        .defaultMinSize(minHeight = 48.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD9D9D9)),
+                    shape = MaterialTheme.shapes.small
+                ) {
+                    Text(
+                        text = "Go to Episodes",
+                        style = typography.displayLarge,
+                        color = Color.Black
+                    )
+                }
             }
             Column (
                 horizontalAlignment = Alignment.CenterHorizontally
@@ -142,11 +157,20 @@ fun HomeScreen(
                     textAlign = TextAlign.Center
                 )
                 Spacer(modifier = Modifier.height(8.dp))
-                StyledButton(
+                Button(
                     onClick = onUpgrade,
-                    text = "Upgrade Now",
-                    textStyle = typography.displaySmall
-                )
+                    modifier = Modifier
+                        .border(width = 1.dp, color = Color.Black)
+                        .defaultMinSize(minHeight = 48.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD9D9D9)),
+                    shape = MaterialTheme.shapes.small
+                ) {
+                    Text(
+                        text = "Upgrade Now",
+                        style = typography.displaySmall,
+                        color = Color.Black
+                    )
+                }
             }
             Text(
                 text = "settings",
