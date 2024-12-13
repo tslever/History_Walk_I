@@ -47,14 +47,16 @@ fun HomeScreen(
     onUpgrade: () -> Unit,
     viewModel: ViewModelForHistoryWalkI
 ) {
-
-    val numberOfHistoricalStepsPerRealStep = listOf(1, 2, 3)
-    val listOfPaces = numberOfHistoricalStepsPerRealStep.map { "1 real step = $it historical steps" }
+    val listOfPaces = listOf(
+        "1 real step = 1 historical step",
+        "1 real step = 2 historical steps",
+        "1 real step = 3 historical steps"
+    )
     var selectedPace by remember { mutableStateOf("") }
-    var dropdownMenuOfPacesIsExpanded by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
         selectedPace = viewModel.getSelectedPace()
     }
+    var dropdownMenuOfPacesIsExpanded by remember { mutableStateOf(false) }
 
     Box {
         Image(
@@ -114,7 +116,7 @@ fun HomeScreen(
                     TextField(
                         modifier = Modifier.menuAnchor(),
                         value = selectedPace,
-                        onValueChange =  { },
+                        onValueChange = { },
                         readOnly = true,
                         textStyle = typography.displaySmall,
                         trailingIcon = {
