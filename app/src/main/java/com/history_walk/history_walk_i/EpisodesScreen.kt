@@ -23,6 +23,7 @@ import androidx.compose.material3.MaterialTheme.typography
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -44,22 +45,37 @@ data class Episode(
 @Composable
 fun EpisodesScreen(
     onGoToSettings: () -> Unit,
+    onRequestDirectory: () -> Unit,
     viewModel: ViewModelForHistoryWalkI
 ) {
 
-    val numberOfHistoricalStepsPerRealStep = viewModel.getHistoricalStepsPerRealStepValue()
+    LaunchedEffect(Unit) {
+        if (!viewModel.isDirectoryChosen()) {
+            onRequestDirectory()
+        }
+    }
 
+    val (
+        indexOfPresentEpisode,
+        numberOfHistoricalStepsCompletedOfPresentEpisode
+    ) = if (viewModel.isDirectoryChosen()) {
+        viewModel.getIndexAndNumberOfHistoricalStepsCompletedOfPresentEpisode()
+    } else {
+        Pair(1, 0)
+    }
+
+    val numberOfHistoricalStepsPerRealStep = viewModel.getHistoricalStepsPerRealStepValue()
     val episodes = listOf(
-        Episode(index = 1, isCompleted = false, isAvailable = true, stepsRequired = 198 / numberOfHistoricalStepsPerRealStep),
-        Episode(index = 2, isCompleted = false, isAvailable = false, stepsRequired = 396 / numberOfHistoricalStepsPerRealStep),
-        Episode(index = 3, isCompleted = false, isAvailable = false, stepsRequired = 300 / numberOfHistoricalStepsPerRealStep),
-        Episode(index = 4, isCompleted = false, isAvailable = false, stepsRequired = 600 / numberOfHistoricalStepsPerRealStep),
-        Episode(index = 5, isCompleted = false, isAvailable = false, stepsRequired = 498 / numberOfHistoricalStepsPerRealStep),
-        Episode(index = 6, isCompleted = false, isAvailable = false, stepsRequired = 198 / numberOfHistoricalStepsPerRealStep),
-        Episode(index = 7, isCompleted = false, isAvailable = false, stepsRequired = 396 / numberOfHistoricalStepsPerRealStep),
-        Episode(index = 8, isCompleted = false, isAvailable = false, stepsRequired = 300 / numberOfHistoricalStepsPerRealStep),
-        Episode(index = 9, isCompleted = false, isAvailable = false, stepsRequired = 600 / numberOfHistoricalStepsPerRealStep),
-        Episode(index = 10, isCompleted = false, isAvailable = false, stepsRequired = 498 / numberOfHistoricalStepsPerRealStep)
+        Episode(index = 1, isCompleted = 1 < indexOfPresentEpisode, isAvailable = 1 <= indexOfPresentEpisode, stepsRequired = 198 / numberOfHistoricalStepsPerRealStep),
+        Episode(index = 2, isCompleted = 2 < indexOfPresentEpisode, isAvailable = 2 <= indexOfPresentEpisode, stepsRequired = 396 / numberOfHistoricalStepsPerRealStep),
+        Episode(index = 3, isCompleted = 3 < indexOfPresentEpisode, isAvailable = 3 <= indexOfPresentEpisode, stepsRequired = 300 / numberOfHistoricalStepsPerRealStep),
+        Episode(index = 4, isCompleted = 4 < indexOfPresentEpisode, isAvailable = 4 <= indexOfPresentEpisode, stepsRequired = 600 / numberOfHistoricalStepsPerRealStep),
+        Episode(index = 5, isCompleted = 5 < indexOfPresentEpisode, isAvailable = 5 <= indexOfPresentEpisode, stepsRequired = 498 / numberOfHistoricalStepsPerRealStep),
+        Episode(index = 6, isCompleted = 6 < indexOfPresentEpisode, isAvailable = 6 <= indexOfPresentEpisode, stepsRequired = 198 / numberOfHistoricalStepsPerRealStep),
+        Episode(index = 7, isCompleted = 7 < indexOfPresentEpisode, isAvailable = 7 <= indexOfPresentEpisode, stepsRequired = 396 / numberOfHistoricalStepsPerRealStep),
+        Episode(index = 8, isCompleted = 8 < indexOfPresentEpisode, isAvailable = 8 <= indexOfPresentEpisode, stepsRequired = 300 / numberOfHistoricalStepsPerRealStep),
+        Episode(index = 9, isCompleted = 9 < indexOfPresentEpisode, isAvailable = 9 <= indexOfPresentEpisode, stepsRequired = 600 / numberOfHistoricalStepsPerRealStep),
+        Episode(index = 10, isCompleted = 10 < indexOfPresentEpisode, isAvailable = 10 <= indexOfPresentEpisode, stepsRequired = 498 / numberOfHistoricalStepsPerRealStep)
     )
 
     Box {
