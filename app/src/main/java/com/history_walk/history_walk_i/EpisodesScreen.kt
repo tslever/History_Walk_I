@@ -39,25 +39,9 @@ data class Episode(
 @Composable
 fun EpisodesScreen(
     onGoToSettings: () -> Unit,
-    onRequestDirectory: () -> Unit,
     viewModel: ViewModelForHistoryWalkI
 ) {
-
-    LaunchedEffect(Unit) {
-        if (!viewModel.isDirectoryChosen()) {
-            onRequestDirectory()
-        }
-    }
-
-    val (
-        indexOfPresentEpisode,
-        numberOfHistoricalStepsCompletedOfPresentEpisode
-    ) = if (viewModel.isDirectoryChosen()) {
-        viewModel.getIndexAndNumberOfHistoricalStepsCompletedOfPresentEpisode()
-    } else {
-        Pair(1, 0)
-    }
-
+    val (indexOfPresentEpisode) = viewModel.getIndexAndNumberOfHistoricalStepsCompletedOfPresentEpisode()
     val numberOfHistoricalStepsPerRealStep = viewModel.getNumberOfHistoricalStepsPerRealStep()
     val episodes = listOf(
         Episode(index = 1, isCompleted = 1 < indexOfPresentEpisode, isAvailable = 1 <= indexOfPresentEpisode, stepsRequired = 198 / numberOfHistoricalStepsPerRealStep),
@@ -114,7 +98,6 @@ fun EpisodesScreen(
                     }
                 }
             }
-
             SettingsButton (onGoToSettings = onGoToSettings)
         }
     }

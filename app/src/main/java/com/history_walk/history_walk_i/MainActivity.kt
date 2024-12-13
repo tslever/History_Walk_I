@@ -108,9 +108,6 @@ fun HistoryWalkI(viewModel: ViewModelForHistoryWalkI = viewModel()) {
                 onGoToSettings = {
                     navController.navigate("settings")
                 },
-                onRequestDirectory = {
-
-                },
                 viewModel = viewModel
             )
         }
