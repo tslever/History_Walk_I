@@ -47,7 +47,7 @@ fun HistoryWalkI(viewModel: ViewModelForHistoryWalkI = viewModel()) {
             val contentResolver = viewModel.getApplication<Application>().contentResolver
             try {
                 contentResolver.takePersistableUriPermission(uri, flags)
-                viewModel.setChosenDirectoryUri(uri.toString())
+                viewModel.setSharedPreferenceRepresentingUriOfChosenDirectory(uri.toString())
                 Log.d("MainActivity", "Directory chosen and permissions taken: $uri")
                 viewModel.getIndexAndNumberOfHistoricalStepsCompletedOfPresentEpisode()
                 if (pendingNavigationToEpisodes) {
