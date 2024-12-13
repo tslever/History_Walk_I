@@ -1,5 +1,6 @@
 package com.history_walk.history_walk_i
 
+import SettingsButton
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -121,28 +122,7 @@ fun EpisodesScreen(
                 }
             }
 
-            Button(
-                onClick = onGoToSettings,
-                modifier = Modifier
-                    .border(width = 1.dp, color = Color.Black)
-                    .defaultMinSize(minHeight = 48.dp),
-                shape = MaterialTheme.shapes.small
-            ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.Settings,
-                        contentDescription = "Settings",
-                        tint = Color.Black
-                    )
-                    Text(
-                        text = "settings",
-                        style = typography.displaySmall,
-                        color = Color.Black
-                    )
-                }
-            }
+            SettingsButton (onGoToSettings = onGoToSettings)
         }
     }
 }

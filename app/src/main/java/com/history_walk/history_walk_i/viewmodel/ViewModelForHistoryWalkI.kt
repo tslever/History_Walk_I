@@ -67,8 +67,8 @@ class ViewModelForHistoryWalkI (application: Application) : AndroidViewModel(app
             } else {
                 Log.d("ViewModelForHistoryWalkI", "File created: ${targetFile.uri}")
                 contentResolver.openOutputStream(targetFile.uri)?.use { output ->
-                    val initialContent = """indexOfPresentEpisode:1
-numberOfHistoricalStepsCompletedOfPresentEpisode:0""".trimIndent()
+                    val initialContent = """index of present episode: 1
+number of historical steps completed of present episode: 0""".trimIndent()
                     output.write(initialContent.toByteArray())
                     output.flush()
                     Log.d("ViewModelForHistoryWalkI", "Wrote initial content to file $fileName")
@@ -82,10 +82,10 @@ numberOfHistoricalStepsCompletedOfPresentEpisode:0""".trimIndent()
                     val lines = reader.readLines()
                     for (line in lines) {
                         when {
-                            line.startsWith("indexOfPresentEpisode:") -> {
+                            line.startsWith("index of present episode:") -> {
                                 indexOfPresentEpisode = line.substringAfter(":").trim().toIntOrNull() ?: 1
                             }
-                            line.startsWith("numberOfHistoricalStepsCompletedOfPresentEpisode:") -> {
+                            line.startsWith("number of historical steps completed of present episode:") -> {
                                 numberOfHistoricalStepsCompletedOfPresentEpisode = line.substringAfter(":").trim().toIntOrNull() ?: 0
                             }
                         }
