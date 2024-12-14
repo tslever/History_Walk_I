@@ -103,8 +103,22 @@ fun HistoryWalkI(viewModel: ViewModelForHistoryWalkI = viewModel()) {
                 onGoToSettings = {
                     navController.navigate("settings")
                 },
-                viewModel = viewModel
+                viewModel = viewModel,
+                onEpisodeClick = { episodeId ->
+                    navController.navigate("episode/$episodeId")
+                }
             )
+        }
+        composable("episode/{episodeId}") { backStackEntry ->
+            val episodeId = backStackEntry.arguments?.getString("episodeId")?.toIntOrNull()
+            if (episodeId != null) {
+                EpisodeScreen(
+                    episodeId = episodeId,
+                    viewModel = viewModel,
+                    onGoToSettings = { navController.navigate("settings") },
+                    onBack = { navController.popBackStack() }
+                )
+            }
         }
         composable("settings") {
             SettingsScreen()

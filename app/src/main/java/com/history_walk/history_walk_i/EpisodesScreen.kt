@@ -3,6 +3,7 @@ package com.history_walk.history_walk_i
 import SettingsButton
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -45,27 +46,12 @@ data class Episode(
 @Composable
 fun EpisodesScreen(
     onGoToSettings: () -> Unit,
-    viewModel: ViewModelForHistoryWalkI
+    viewModel: ViewModelForHistoryWalkI,
+    onEpisodeClick: (Int) -> Unit
 ) {
     val (indexOfPresentEpisode, _) = viewModel.getIndexAndNumberOfHistoricalStepsCompletedOfPresentEpisode()
     val selectedPace = viewModel.getSelectedPace()
-
-    val listOfPairsOfEpisodeTitlesAndNumbersOfHistoricalSteps = listOf(
-        "The Alhambra" to 198,
-        "Crossing Spain" to 396,
-        "Journey to London" to 300,
-        "Moving to Ludlow" to 600,
-        "An Impoverished Captive" to 498,
-        "Knight in Shining Armour" to 198,
-        "Royal Progress" to 396,
-        "General Catherine" to 300,
-        "Producing an Heir" to 600,
-        "The King's Great Matter" to 498,
-        "Dowager Princess of Wales" to 198,
-        "Funeral Progress" to 396
-    )
-
-    val episodes = listOfPairsOfEpisodeTitlesAndNumbersOfHistoricalSteps.mapIndexed { index, (title, steps) ->
+    val listOfEpisodes = viewModel.listOfPairsOfEpisodeTitlesAndNumbersOfHistoricalSteps.mapIndexed { index, (title, steps) ->
         val theIndex = index + 1
         Episode(
             isCompleted = theIndex < indexOfPresentEpisode,
@@ -114,8 +100,11 @@ fun EpisodesScreen(
                         )
                 ) {
                     LazyColumn {
-                        items(episodes) { episode ->
-                            EpisodeRow(episode = episode)
+                        items(listOfEpisodes) { episode ->
+                            EpisodeRow(
+                                episode = episode,
+                                onClick = { onEpisodeClick(episode.index) }
+                            )
                         }
                     }
                 }
@@ -127,12 +116,17 @@ fun EpisodesScreen(
 
 
 @Composable
-fun EpisodeRow(episode: Episode) {
+fun EpisodeRow(episode: Episode, onClick: () -> Unit) {
     val textColor = if (episode.isAvailable) Color(0xFF000000) else Color(0x86000000) // ARGB
 
     Surface(
         color = Color.Transparent,
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(
+                enabled = episode.isAvailable,
+                onClick = onClick
+            )
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically
@@ -152,7 +146,9 @@ fun EpisodeRow(episode: Episode) {
                 style = typography.labelLarge,
                 color = textColor,
                 textAlign = TextAlign.Right,
-                modifier = Modifier.weight(0.1f).padding(end = 8.dp)
+                modifier = Modifier
+                    .weight(0.1f)
+                    .padding(end = 8.dp)
             )
             Text(
                 text = episode.title,
