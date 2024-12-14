@@ -123,8 +123,7 @@ fun EpisodeRow(episode: Episode) {
         modifier = Modifier.fillMaxWidth()
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-            horizontalArrangement = Arrangement.SpaceBetween
+            verticalAlignment = Alignment.CenterVertically
         ) {
             Checkbox(
                 checked = episode.isCompleted,
