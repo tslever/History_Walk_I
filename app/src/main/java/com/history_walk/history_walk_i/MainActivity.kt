@@ -4,7 +4,6 @@ import android.app.Application
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
-import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
@@ -33,36 +32,32 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+
 @Composable
 fun HistoryWalkI(viewModel: ViewModelForHistoryWalkI = viewModel()) {
     val navController = rememberNavController()
-    var pendingNavigationToEpisodes by remember { mutableStateOf(false) }
+    var weAreNavigatingToEpisodesScreen by remember { mutableStateOf(false) }
 
-    val openDirectoryLauncher = rememberLauncherForActivityResult(
+    val managedActivityResultLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocumentTree()
     ) {
         uri: Uri? ->
+        val flags = Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+        val application = viewModel.getApplication<Application>()
+        val contentResolver = application.contentResolver
         if (uri != null) {
-            val flags = Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
-            val contentResolver = viewModel.getApplication<Application>().contentResolver
-            try {
-                contentResolver.takePersistableUriPermission(uri, flags)
-                viewModel.setSharedPreferenceRepresentingUriOfChosenDirectory(uri.toString())
-                Log.d("MainActivity", "Directory chosen and permissions taken: $uri")
-                viewModel.getIndexAndNumberOfHistoricalStepsCompletedOfPresentEpisode()
-                if (pendingNavigationToEpisodes) {
-                    viewModel.setHasSeenHome()
-                    navController.navigate("episodes") {
-                        popUpTo("home") { inclusive = true }
-                    }
-                    pendingNavigationToEpisodes = false
-                }
-            } catch (e: SecurityException) {
-                Log.e("MainActivity", "Failed to take persistable URI permission: ${e.message}")
-            }
-        } else {
-            Log.e("MainActivity", "No directory selected by the user.")
+            contentResolver.takePersistableUriPermission(uri, flags)
         }
+        val stringRepresentingUri = uri.toString()
+        viewModel.setSharedPreferenceRepresentingUriOfChosenDirectory(stringRepresentingUri)
+        viewModel.getIndexAndNumberOfHistoricalStepsCompletedOfPresentEpisode()
+        if (weAreNavigatingToEpisodesScreen) {
+            viewModel.setHasSeenHome()
+            navController.navigate("episodes") {
+                popUpTo("home") { inclusive = true }
+            }
+        }
+        weAreNavigatingToEpisodesScreen = false
     }
 
     NavHost(navController = navController, startDestination = "intro") {
@@ -90,8 +85,8 @@ fun HistoryWalkI(viewModel: ViewModelForHistoryWalkI = viewModel()) {
                             popUpTo("home") { inclusive = true }
                         }
                     } else {
-                        pendingNavigationToEpisodes = true
-                        openDirectoryLauncher.launch(null)
+                        weAreNavigatingToEpisodesScreen = true
+                        managedActivityResultLauncher.launch(null)
                     }
                 },
                 onUpgrade = {

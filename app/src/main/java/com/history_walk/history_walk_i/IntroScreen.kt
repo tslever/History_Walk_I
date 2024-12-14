@@ -1,6 +1,5 @@
 package com.history_walk.history_walk_i
 
-
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -12,7 +11,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -65,9 +63,6 @@ fun IntroScreen(onContinue: () -> Unit) {
                     modifier = Modifier
                         .border(width = 1.dp, color = Color.Black)
                         .defaultMinSize(minHeight = 48.dp),
-                    //colors = ButtonDefaults.buttonColors(
-                    //    containerColor = Color(0xFFD9D9D9)
-                    //),
                     shape = MaterialTheme.shapes.small
                 ) {
                     Text(
@@ -80,6 +75,7 @@ fun IntroScreen(onContinue: () -> Unit) {
         }
     }
 }
+
 
 @Composable
 fun StrokedText(
