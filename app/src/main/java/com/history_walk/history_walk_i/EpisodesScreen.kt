@@ -3,6 +3,7 @@ package com.history_walk.history_walk_i
 import SettingsButton
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -94,6 +95,11 @@ fun EpisodesScreen(
                             RoundedCornerShape(16.dp)
                         )
                         .background(color = Color(0x80D9D9D9)) // ARGB
+                        .border(
+                            width = 1.dp,
+                            color = Color.Black,
+                            shape = RoundedCornerShape(16.dp)
+                        )
                         .padding(
                             top = 2.dp,
                             bottom = 2.dp

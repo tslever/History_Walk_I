@@ -180,7 +180,10 @@ fun HomeScreen(
                 Text(
                     text = "Note: The free version of this app allows you to log 2,000 steps per day. For unlimited steps, make a one-time purchase of \$5.99.",
                     style = typography.displaySmall,
-                    textAlign = TextAlign.Center
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .background(color = Color(0x80D9D9D9))
+                        .padding(vertical = 2.dp)
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Button(
