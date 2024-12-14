@@ -39,6 +39,9 @@ import androidx.compose.ui.unit.dp
 import com.history_walk.history_walk_i.viewmodel.ViewModelForHistoryWalkI
 
 
+data class TupleOfPaceAndDescription(val pace: Int, val description: String)
+
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
@@ -47,14 +50,18 @@ fun HomeScreen(
     onUpgrade: () -> Unit,
     viewModel: ViewModelForHistoryWalkI
 ) {
-    val listOfPaces = listOf(
-        "1 real step = 1 historical step",
-        "1 real step = 2 historical steps",
-        "1 real step = 3 historical steps"
+    val listOfTuplesOfPaceAndDescription = listOf(
+        TupleOfPaceAndDescription(1,"1 real step = 1 historical step"),
+        TupleOfPaceAndDescription(2, "1 real step = 2 historical steps"),
+        TupleOfPaceAndDescription(3, "1 real step = 3 historical steps")
     )
-    var selectedPace by remember { mutableStateOf("") }
-    LaunchedEffect(Unit) {
-        selectedPace = viewModel.getSelectedPace()
+    val paceInSharedPreferences = viewModel.getSelectedPace()
+    var selectedTupleOfPaceAndDescription by remember {
+        mutableStateOf(
+            listOfTuplesOfPaceAndDescription.find {
+                it.pace == paceInSharedPreferences
+            } ?: listOfTuplesOfPaceAndDescription[0]
+        )
     }
     var dropdownMenuOfPacesIsExpanded by remember { mutableStateOf(false) }
 
@@ -115,25 +122,30 @@ fun HomeScreen(
                 ) {
                     TextField(
                         modifier = Modifier.menuAnchor(),
-                        value = selectedPace,
+                        value = selectedTupleOfPaceAndDescription.description,
                         onValueChange = { },
                         readOnly = true,
                         textStyle = typography.displaySmall,
                         trailingIcon = {
                             ExposedDropdownMenuDefaults.TrailingIcon(expanded = dropdownMenuOfPacesIsExpanded)
-                        }
+                        },
+                        colors = ExposedDropdownMenuDefaults.textFieldColors()
                     )
                     ExposedDropdownMenu(
                         expanded = dropdownMenuOfPacesIsExpanded,
                         onDismissRequest = { dropdownMenuOfPacesIsExpanded = false }
                     ) {
-                        listOfPaces.forEach { pace ->
+                        listOfTuplesOfPaceAndDescription.forEach { tupleOfPaceAndDescription ->
                             DropdownMenuItem(
-                                text = { Text(text = pace, style = typography.displaySmall) },
+                                text = {
+                                    Text(
+                                        text = tupleOfPaceAndDescription.description,
+                                        style = typography.displaySmall
+                                    ) },
                                 onClick = {
-                                    selectedPace = pace
+                                    selectedTupleOfPaceAndDescription = tupleOfPaceAndDescription
                                     dropdownMenuOfPacesIsExpanded = false
-                                    viewModel.setSelectedPace(selectedPace)
+                                    viewModel.setSelectedPace(tupleOfPaceAndDescription.pace)
                                 },
                                 contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding
                             )

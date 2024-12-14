@@ -14,6 +14,7 @@ import java.io.InputStreamReader
 class ViewModelForHistoryWalkI (application: Application) : AndroidViewModel(application) {
     private val sharedPref = application.getSharedPreferences("appPreferences", Context.MODE_PRIVATE)
 
+
     private fun getDocumentFileRepresentingChosenDirectory(): DocumentFile? {
         val stringRepresentingUriOfChosenDirectory = getStringRepresentingUriOfChosenDirectory() ?: return null
         val uriOfChosenDirectory = Uri.parse(stringRepresentingUriOfChosenDirectory)
@@ -22,16 +23,6 @@ class ViewModelForHistoryWalkI (application: Application) : AndroidViewModel(app
         return documentFile
     }
 
-    private fun getStringRepresentingUriOfChosenDirectory(): String? {
-        return sharedPref.getString("uriOfChosenDirectory", null)
-    }
-
-    fun getNumberOfHistoricalStepsPerRealStep(): Int {
-        val pace = getSelectedPace()
-        val regex = Regex("1 real step = (\\d+) historical steps?")
-        val match = regex.find(pace)
-        return match?.groupValues?.get(1)?.toIntOrNull() ?: 1
-    }
 
     fun getIndexAndNumberOfHistoricalStepsCompletedOfPresentEpisode(): Pair<Int, Int> {
         var indexOfPresentEpisode = 1
@@ -83,17 +74,26 @@ number of historical steps completed of present episode: 0"""
         return Pair(indexOfPresentEpisode, numberOfHistoricalStepsCompletedOfPresentEpisode)
     }
 
-    fun getSelectedPace(): String {
-        return sharedPref.getString("selectedPace", "1 real step = 1 historical step") ?: "1 real step = 1 historical step"
+
+    fun getSelectedPace(): Int {
+        return sharedPref.getInt("selectedPace", 1)
     }
+
+
+    private fun getStringRepresentingUriOfChosenDirectory(): String? {
+        return sharedPref.getString("uriOfChosenDirectory", null)
+    }
+
 
     fun hasSeenHome(): Boolean {
         return sharedPref.getBoolean("hasSeenHome", false)
     }
 
+
     fun isDirectoryChosen(): Boolean {
         return getStringRepresentingUriOfChosenDirectory() != null
     }
+
 
     fun setSharedPreferenceRepresentingUriOfChosenDirectory(stringRepresentingUri: String) {
         viewModelScope.launch {
@@ -101,15 +101,18 @@ number of historical steps completed of present episode: 0"""
         }
     }
 
+
     fun setHasSeenHome() {
         viewModelScope.launch {
             sharedPref.edit().putBoolean("hasSeenHome", true).apply()
         }
     }
 
-    fun setSelectedPace(pace: String) {
+
+    fun setSelectedPace(pace: Int) {
         viewModelScope.launch {
-            sharedPref.edit().putString("selectedPace", pace).apply()
+            val stringRepresentingPace = pace.toString()
+            sharedPref.edit().putInt("selectedPace", pace).apply()
         }
     }
 }

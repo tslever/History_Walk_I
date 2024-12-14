@@ -47,8 +47,8 @@ fun EpisodesScreen(
     onGoToSettings: () -> Unit,
     viewModel: ViewModelForHistoryWalkI
 ) {
-    val (indexOfPresentEpisode) = viewModel.getIndexAndNumberOfHistoricalStepsCompletedOfPresentEpisode()
-    val numberOfHistoricalStepsPerRealStep = viewModel.getNumberOfHistoricalStepsPerRealStep()
+    val (indexOfPresentEpisode, _) = viewModel.getIndexAndNumberOfHistoricalStepsCompletedOfPresentEpisode()
+    val selectedPace = viewModel.getSelectedPace()
 
     val listOfPairsOfEpisodeTitlesAndNumbersOfHistoricalSteps = listOf(
         "The Alhambra" to 198,
@@ -71,7 +71,7 @@ fun EpisodesScreen(
             isCompleted = theIndex < indexOfPresentEpisode,
             index = theIndex,
             title = title,
-            stepsRequired = steps / numberOfHistoricalStepsPerRealStep,
+            stepsRequired = steps / selectedPace,
             isAvailable = theIndex <= indexOfPresentEpisode
         )
     }
