@@ -11,7 +11,7 @@ import com.history_walk.history_walk_i.R.font.jacquard_24_regular
 import com.history_walk.history_walk_i.R.font.jacques_francois_regular
 
 
-val InknutAntiqua = FontFamily(
+val Inknut_Antiqua = FontFamily(
     Font(inknut_antiqua_regular, FontWeight.Normal)
 )
 
@@ -28,14 +28,14 @@ val Jacques_Francois = FontFamily(
 
 val Typography = Typography(
     titleSmall = TextStyle(
-        fontFamily = InknutAntiqua,
+        fontFamily = Inknut_Antiqua,
         fontWeight = FontWeight.Normal,
         fontSize = 24.sp
     ),
     titleMedium = TextStyle(
         fontFamily = Jacques_Francois,
         fontWeight = FontWeight.Normal,
-        fontSize = 32.sp
+        fontSize = 45.sp
     ),
     titleLarge = TextStyle(
         fontFamily = Jacquard_24,
@@ -56,5 +56,10 @@ val Typography = Typography(
         fontFamily = Jacques_Francois,
         fontWeight = FontWeight.Normal,
         fontSize = 13.5.sp
+    ),
+    labelLarge = TextStyle(
+        fontFamily = Inknut_Antiqua,
+        fontWeight = FontWeight.Normal,
+        fontSize = 13.75.sp
     )
 )

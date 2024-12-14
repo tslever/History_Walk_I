@@ -66,7 +66,7 @@ fun EpisodesScreen(
 
     Box {
         Image(
-            painter = painterResource(id = R.drawable.portrait_of_catherine_of_aragon_by_lucas_horenbout),
+            painter = painterResource(id = R.drawable.portrait_of_catherine_of_aragon_by_michel_sittow),
             contentDescription = "portrait of Catherine of Aragon by Lucas Horenbout",
             contentScale = ContentScale.Crop,
             modifier = Modifier
@@ -76,7 +76,7 @@ fun EpisodesScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = 32.dp, start = 8.dp, end = 8.dp, bottom = 21.dp),
+                .padding(top = 8.dp, start = 8.dp, end = 8.dp, bottom = 21.dp),
             verticalArrangement = Arrangement.SpaceBetween
         ) {
             Column(
@@ -88,7 +88,7 @@ fun EpisodesScreen(
                     style = typography.titleMedium,
                     color = Color(0xFFFFC004), // ARGB
                 )
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(8.dp))
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     modifier = Modifier
@@ -123,7 +123,7 @@ fun EpisodeRow(episode: Episode) {
         modifier = Modifier.fillMaxWidth()
     ) {
         Row(
-            modifier = Modifier.padding(8.dp),
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Checkbox(
@@ -138,20 +138,20 @@ fun EpisodeRow(episode: Episode) {
             )
             Text(
                 text = "${episode.index}.",
-                style = typography.displayMedium,
+                style = typography.labelLarge,
                 color = textColor,
                 textAlign = TextAlign.Right,
                 modifier = Modifier.weight(0.1f).padding(end = 8.dp)
             )
             Text(
                 text = episode.title,
-                style = typography.displayMedium,
+                style = typography.labelLarge,
                 color = textColor,
                 modifier = Modifier.weight(0.7f)
             )
             Text(
                 text = episode.stepsRequired.toString(),
-                style = typography.displayMedium,
+                style = typography.labelLarge,
                 color = textColor,
                 modifier = Modifier.weight(0.1f)
             )
