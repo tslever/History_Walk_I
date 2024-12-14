@@ -42,7 +42,7 @@ fun IntroScreen(onContinue: () -> Unit) {
         ) {
             Text(
                 text = "History Walk I",
-                style = Typography.titleMedium,
+                style = Typography.titleSmall,
                 color = Color(0xFFFFC004), // ARGB
                 textAlign = TextAlign.Center
             )

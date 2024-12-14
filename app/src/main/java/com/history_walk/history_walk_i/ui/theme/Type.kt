@@ -27,10 +27,15 @@ val Jacques_Francois = FontFamily(
 
 
 val Typography = Typography(
-    titleMedium = TextStyle(
+    titleSmall = TextStyle(
         fontFamily = InknutAntiqua,
         fontWeight = FontWeight.Normal,
         fontSize = 24.sp
+    ),
+    titleMedium = TextStyle(
+        fontFamily = Jacques_Francois,
+        fontWeight = FontWeight.Normal,
+        fontSize = 32.sp
     ),
     titleLarge = TextStyle(
         fontFamily = Jacquard_24,

@@ -2,6 +2,7 @@ package com.history_walk.history_walk_i
 
 import SettingsButton
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,14 +14,17 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CheckboxDefaults.colors
 import androidx.compose.material3.MaterialTheme.typography
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
@@ -29,10 +33,11 @@ import com.history_walk.history_walk_i.viewmodel.ViewModelForHistoryWalkI
 
 
 data class Episode(
-    val index: Int,
     val isCompleted: Boolean,
-    val isAvailable: Boolean,
-    val stepsRequired: Int
+    val index: Int,
+    val title: String,
+    val stepsRequired: Int,
+    val isAvailable: Boolean
 )
 
 
@@ -44,16 +49,18 @@ fun EpisodesScreen(
     val (indexOfPresentEpisode) = viewModel.getIndexAndNumberOfHistoricalStepsCompletedOfPresentEpisode()
     val numberOfHistoricalStepsPerRealStep = viewModel.getNumberOfHistoricalStepsPerRealStep()
     val episodes = listOf(
-        Episode(index = 1, isCompleted = 1 < indexOfPresentEpisode, isAvailable = 1 <= indexOfPresentEpisode, stepsRequired = 198 / numberOfHistoricalStepsPerRealStep),
-        Episode(index = 2, isCompleted = 2 < indexOfPresentEpisode, isAvailable = 2 <= indexOfPresentEpisode, stepsRequired = 396 / numberOfHistoricalStepsPerRealStep),
-        Episode(index = 3, isCompleted = 3 < indexOfPresentEpisode, isAvailable = 3 <= indexOfPresentEpisode, stepsRequired = 300 / numberOfHistoricalStepsPerRealStep),
-        Episode(index = 4, isCompleted = 4 < indexOfPresentEpisode, isAvailable = 4 <= indexOfPresentEpisode, stepsRequired = 600 / numberOfHistoricalStepsPerRealStep),
-        Episode(index = 5, isCompleted = 5 < indexOfPresentEpisode, isAvailable = 5 <= indexOfPresentEpisode, stepsRequired = 498 / numberOfHistoricalStepsPerRealStep),
-        Episode(index = 6, isCompleted = 6 < indexOfPresentEpisode, isAvailable = 6 <= indexOfPresentEpisode, stepsRequired = 198 / numberOfHistoricalStepsPerRealStep),
-        Episode(index = 7, isCompleted = 7 < indexOfPresentEpisode, isAvailable = 7 <= indexOfPresentEpisode, stepsRequired = 396 / numberOfHistoricalStepsPerRealStep),
-        Episode(index = 8, isCompleted = 8 < indexOfPresentEpisode, isAvailable = 8 <= indexOfPresentEpisode, stepsRequired = 300 / numberOfHistoricalStepsPerRealStep),
-        Episode(index = 9, isCompleted = 9 < indexOfPresentEpisode, isAvailable = 9 <= indexOfPresentEpisode, stepsRequired = 600 / numberOfHistoricalStepsPerRealStep),
-        Episode(index = 10, isCompleted = 10 < indexOfPresentEpisode, isAvailable = 10 <= indexOfPresentEpisode, stepsRequired = 498 / numberOfHistoricalStepsPerRealStep)
+        Episode(isCompleted = 1 < indexOfPresentEpisode, index = 1, title = "The Alhambra", stepsRequired = 198 / numberOfHistoricalStepsPerRealStep, isAvailable = 1 <= indexOfPresentEpisode),
+        Episode(isCompleted = 2 < indexOfPresentEpisode, index = 2, title = "Crossing Spain", stepsRequired = 396 / numberOfHistoricalStepsPerRealStep, isAvailable = 2 <= indexOfPresentEpisode),
+        Episode(isCompleted = 3 < indexOfPresentEpisode, index = 3, title = "Journey to London", stepsRequired = 300 / numberOfHistoricalStepsPerRealStep, isAvailable = 3 <= indexOfPresentEpisode),
+        Episode(isCompleted = 4 < indexOfPresentEpisode, index = 4, title = "Moving to Ludlow", stepsRequired = 600 / numberOfHistoricalStepsPerRealStep, isAvailable = 4 <= indexOfPresentEpisode),
+        Episode(isCompleted = 5 < indexOfPresentEpisode, index = 5, title = "An Impoverished Captive", stepsRequired = 498 / numberOfHistoricalStepsPerRealStep, isAvailable = 5 <= indexOfPresentEpisode),
+        Episode(isCompleted = 6 < indexOfPresentEpisode, index = 6, title = "Knight in Shining Armour", stepsRequired = 198 / numberOfHistoricalStepsPerRealStep, isAvailable = 6 <= indexOfPresentEpisode),
+        Episode(isCompleted = 7 < indexOfPresentEpisode, index = 7, title = "Royal Progress", stepsRequired = 396 / numberOfHistoricalStepsPerRealStep, isAvailable = 7 <= indexOfPresentEpisode),
+        Episode(isCompleted = 8 < indexOfPresentEpisode, index = 8, title = "General Catherine", stepsRequired = 300 / numberOfHistoricalStepsPerRealStep, isAvailable = 8 <= indexOfPresentEpisode),
+        Episode(isCompleted = 9 < indexOfPresentEpisode, index = 9, title = "Producing an Heir", stepsRequired = 600 / numberOfHistoricalStepsPerRealStep, isAvailable = 9 <= indexOfPresentEpisode),
+        Episode(isCompleted = 10 < indexOfPresentEpisode, index = 10, title = "The King's Great Matter", stepsRequired = 498 / numberOfHistoricalStepsPerRealStep, isAvailable = 10 <= indexOfPresentEpisode),
+        Episode(isCompleted = 11 < indexOfPresentEpisode, index = 11, title = "Dowager Princess of Wales", stepsRequired = 198 / numberOfHistoricalStepsPerRealStep, isAvailable = 11 <= indexOfPresentEpisode),
+        Episode(isCompleted = 12 < indexOfPresentEpisode, index = 12, title = "Funeral Progress", stepsRequired = 396 / numberOfHistoricalStepsPerRealStep, isAvailable = 12 <= indexOfPresentEpisode),
     )
 
     Box {
@@ -75,26 +82,26 @@ fun EpisodesScreen(
             ) {
                 Text(
                     text = "Episodes",
-                    style = typography.displayLarge
+                    style = typography.titleMedium,
+                    color = Color(0xFFFFC004), // ARGB
                 )
                 Spacer(modifier = Modifier.height(16.dp))
-                Surface(
-                    color = Color.Transparent,
-                    modifier = Modifier.fillMaxWidth()
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier
+                        .clip(
+                            RoundedCornerShape(16.dp)
+                        )
+                        .background(color = Color(0x80D9D9D9)) // ARGB
+                        .padding(
+                            top = 2.dp,
+                            bottom = 2.dp
+                        )
                 ) {
-                    Row(
-                        modifier = Modifier.padding(8.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        TableHeaderCell(text = "Index")
-                        TableHeaderCell(text = "Completed?")
-                        TableHeaderCell(text = "Available?")
-                        TableHeaderCell(text = "Real Steps")
-                    }
-                }
-                LazyColumn {
-                    items(episodes) { episode ->
-                        EpisodeRow(episode = episode)
+                    LazyColumn {
+                        items(episodes) { episode ->
+                            EpisodeRow(episode = episode)
+                        }
                     }
                 }
             }
@@ -105,13 +112,9 @@ fun EpisodesScreen(
 
 
 @Composable
-fun TableHeaderCell(text: String) {
-    Text(text = text, style = typography.displayMedium)
-}
-
-
-@Composable
 fun EpisodeRow(episode: Episode) {
+    val textColor = if (episode.isAvailable) Color(0xFF000000) else Color(0x86000000) // ARGB
+
     Surface(
         color = Color.Transparent,
         modifier = Modifier.fillMaxWidth()
@@ -120,16 +123,37 @@ fun EpisodeRow(episode: Episode) {
             modifier = Modifier.padding(8.dp),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            TableCell(text = episode.index.toString().padStart(2, '0'))
-            TableCell(text = if (episode.isCompleted) "Yes" else "No")
-            TableCell(text = if (episode.isAvailable) "Yes" else "No")
-            TableCell(text = episode.stepsRequired.toString())
+            Checkbox(
+                checked = episode.isCompleted,
+                onCheckedChange = null,
+                enabled = false,
+                colors = colors(
+                    checkedColor = Color(0xFF000000),
+                    uncheckedColor = Color(0x86000000)
+                )
+            )
+            TableCell(
+                text = episode.index.toString().padStart(2, ' ') + ".",
+                textColor = textColor
+            )
+            TableCell(
+                text = episode.title,
+                textColor = textColor
+            )
+            TableCell(
+                text = episode.stepsRequired.toString(),
+                textColor = textColor
+            )
         }
     }
 }
 
 
 @Composable
-fun TableCell(text: String) {
-    Text(text = text, style = typography.displayMedium)
+fun TableCell(text: String, textColor: Color) {
+    Text(
+        text = text,
+        style = typography.displayMedium,
+        color = textColor
+    )
 }
