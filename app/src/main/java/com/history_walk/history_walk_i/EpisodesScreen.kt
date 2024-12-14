@@ -28,6 +28,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.history_walk.history_walk_i.viewmodel.ViewModelForHistoryWalkI
 
@@ -68,7 +69,9 @@ fun EpisodesScreen(
             painter = painterResource(id = R.drawable.portrait_of_catherine_of_aragon_by_lucas_horenbout),
             contentDescription = "portrait of Catherine of Aragon by Lucas Horenbout",
             contentScale = ContentScale.Crop,
-            modifier = Modifier.fillMaxSize().alpha(alpha = 0.5f)
+            modifier = Modifier
+                .fillMaxSize()
+                .alpha(alpha = 0.5f)
         )
         Column(
             modifier = Modifier
@@ -130,30 +133,28 @@ fun EpisodeRow(episode: Episode) {
                 colors = colors(
                     checkedColor = Color(0xFF000000),
                     uncheckedColor = Color(0x86000000)
-                )
+                ),
+                modifier = Modifier.weight(0.1f)
             )
-            TableCell(
-                text = episode.index.toString().padStart(2, ' ') + ".",
-                textColor = textColor
+            Text(
+                text = "${episode.index}.",
+                style = typography.displayMedium,
+                color = textColor,
+                textAlign = TextAlign.Right,
+                modifier = Modifier.weight(0.1f).padding(end = 8.dp)
             )
-            TableCell(
+            Text(
                 text = episode.title,
-                textColor = textColor
+                style = typography.displayMedium,
+                color = textColor,
+                modifier = Modifier.weight(0.7f)
             )
-            TableCell(
+            Text(
                 text = episode.stepsRequired.toString(),
-                textColor = textColor
+                style = typography.displayMedium,
+                color = textColor,
+                modifier = Modifier.weight(0.1f)
             )
         }
     }
-}
-
-
-@Composable
-fun TableCell(text: String, textColor: Color) {
-    Text(
-        text = text,
-        style = typography.displayMedium,
-        color = textColor
-    )
 }
