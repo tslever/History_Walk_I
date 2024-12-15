@@ -14,8 +14,8 @@ import java.io.InputStreamReader
 class ViewModelForHistoryWalkI (application: Application) : AndroidViewModel(application) {
 
     val listOfPairsOfEpisodeTitlesAndNumbersOfHistoricalSteps = listOf(
-        "The Alhambra" to 198,
-        "Crossing Spain" to 396,
+        "The Alhambra" to 4_000,
+        "Crossing Spain" to 1_600_000,
         "Journey to London" to 300,
         "Moving to Ludlow" to 600,
         "An Impoverished Captive" to 498,
@@ -90,8 +90,8 @@ number of historical steps completed of present episode: 0"""
     }
 
 
-    fun getSelectedPace(): Int {
-        return sharedPref.getInt("selectedPace", 1)
+    fun getSelectedPace(): Float {
+        return sharedPref.getFloat("selectedPace", 1f)
     }
 
 
@@ -124,9 +124,9 @@ number of historical steps completed of present episode: 0"""
     }
 
 
-    fun setSelectedPace(pace: Int) {
+    fun setSelectedPace(pace: Float) {
         viewModelScope.launch {
-            sharedPref.edit().putInt("selectedPace", pace).apply()
+            sharedPref.edit().putFloat("selectedPace", pace).apply()
         }
     }
 }

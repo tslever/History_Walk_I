@@ -23,7 +23,6 @@ import androidx.compose.material3.MaterialTheme.typography
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -39,7 +38,7 @@ import androidx.compose.ui.unit.dp
 import com.history_walk.history_walk_i.viewmodel.ViewModelForHistoryWalkI
 
 
-data class TupleOfPaceAndDescription(val pace: Int, val description: String)
+data class TupleOfPaceAndDescription(val pace: Float, val description: String)
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -51,9 +50,9 @@ fun HomeScreen(
     viewModel: ViewModelForHistoryWalkI
 ) {
     val listOfTuplesOfPaceAndDescription = listOf(
-        TupleOfPaceAndDescription(1,"1 real step = 1 historical step"),
-        TupleOfPaceAndDescription(2, "1 real step = 2 historical steps"),
-        TupleOfPaceAndDescription(3, "1 real step = 3 historical steps")
+        TupleOfPaceAndDescription(0.5f,"slow"),
+        TupleOfPaceAndDescription(1f, "medium"),
+        TupleOfPaceAndDescription(2f, "fast")
     )
     val paceInSharedPreferences = viewModel.getSelectedPace()
     var selectedTupleOfPaceAndDescription by remember {

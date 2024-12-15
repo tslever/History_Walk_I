@@ -39,7 +39,7 @@ data class Episode(
     val isCompleted: Boolean,
     val index: Int,
     val title: String,
-    val stepsRequired: Int,
+    val stepsRequired: Float,
     val isAvailable: Boolean
 )
 
@@ -58,7 +58,7 @@ fun EpisodesScreen(
             isCompleted = theIndex < indexOfPresentEpisode,
             index = theIndex,
             title = title,
-            stepsRequired = steps / selectedPace,
+            stepsRequired = 70_000f / selectedPace,
             isAvailable = theIndex <= indexOfPresentEpisode
         )
     }
@@ -160,13 +160,13 @@ fun EpisodeRow(episode: Episode, onClick: () -> Unit) {
                 text = episode.title,
                 style = typography.labelLarge,
                 color = textColor,
-                modifier = Modifier.weight(0.7f)
+                modifier = Modifier.weight(0.6f)
             )
             Text(
-                text = episode.stepsRequired.toString(),
+                text = episode.stepsRequired.toInt().toString(),
                 style = typography.labelLarge,
                 color = textColor,
-                modifier = Modifier.weight(0.1f)
+                modifier = Modifier.weight(0.2f)
             )
         }
     }
