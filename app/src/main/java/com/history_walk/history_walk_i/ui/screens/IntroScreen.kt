@@ -1,4 +1,4 @@
-package com.history_walk.history_walk_i
+package com.history_walk.history_walk_i.ui.screens
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -26,6 +26,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.history_walk.history_walk_i.R
 import com.history_walk.history_walk_i.ui.theme.Typography
 
 

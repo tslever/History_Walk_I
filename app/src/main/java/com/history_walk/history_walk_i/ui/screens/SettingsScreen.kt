@@ -1,4 +1,4 @@
-package com.history_walk.history_walk_i
+package com.history_walk.history_walk_i.ui.screens
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column

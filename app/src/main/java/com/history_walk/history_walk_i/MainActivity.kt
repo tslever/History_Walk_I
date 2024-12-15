@@ -17,6 +17,11 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.history_walk.history_walk_i.ui.screens.EpisodeScreen
+import com.history_walk.history_walk_i.ui.screens.EpisodesScreen
+import com.history_walk.history_walk_i.ui.screens.HomeScreen
+import com.history_walk.history_walk_i.ui.screens.IntroScreen
+import com.history_walk.history_walk_i.ui.screens.SettingsScreen
 import com.history_walk.history_walk_i.ui.theme.ThemeForHistoryWalkI
 import com.history_walk.history_walk_i.viewmodel.ViewModelForHistoryWalkI
 
