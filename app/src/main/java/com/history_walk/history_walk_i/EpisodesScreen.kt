@@ -27,7 +27,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
@@ -84,7 +86,13 @@ fun EpisodesScreen(
             ) {
                 Text(
                     text = "Episodes",
-                    style = typography.titleMedium,
+                    style = typography.titleMedium.copy(
+                        shadow = Shadow(
+                            color = Color.Black.copy(alpha = 0.2f), // 20% opacity
+                            offset = Offset(0f, 3f), // 0dp x, 3dp y
+                            blurRadius = 4f // 4dp blur
+                        )
+                    ),
                     color = Color(0xFFFFC004), // ARGB
                 )
                 Spacer(modifier = Modifier.height(8.dp))
