@@ -7,9 +7,9 @@
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
-        android:icon="@drawable/portrait_of_catherine_of_aragon_by_juan_de_flandes"
+        android:icon="@drawable/portrait_of_catherine_of_aragon_by_juan_de_flandes_with_height_and_width_of_512_pixels"
         android:label="@string/app_name"
-        android:roundIcon="@drawable/portrait_of_catherine_of_aragon_by_juan_de_flandes"
+        android:roundIcon="@drawable/portrait_of_catherine_of_aragon_by_juan_de_flandes_with_height_and_width_of_512_pixels"
         android:supportsRtl="true"
         android:theme="@style/Theme.HistoryWalkI"
         tools:targetApi="31">
