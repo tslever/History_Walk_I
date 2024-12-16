@@ -134,7 +134,9 @@ fun HomeScreen(
                     onExpandedChange = { dropdownMenuOfPacesIsExpanded = !dropdownMenuOfPacesIsExpanded }
                 ) {
                     TextField(
-                        modifier = Modifier.menuAnchor(),
+                        modifier = Modifier
+                            .menuAnchor()
+                            .width(125.dp),
                         value = DecimalFormat("#,###").format(selectedTupleOfDescriptionAndNumberOfSteps.numberOfSteps),
                         onValueChange = { },
                         readOnly = true,
