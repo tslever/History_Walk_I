@@ -13,6 +13,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentSize
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -33,14 +36,20 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.history_walk.history_walk_i.R
 import com.history_walk.history_walk_i.viewmodel.ViewModelForHistoryWalkI
+import java.text.DecimalFormat
 
 
-data class TupleOfPaceAndDescription(val pace: Float, val description: String)
+data class TupleOfDescriptionAndNumberOfSteps(
+    val description: String,
+    val numberOfSteps: Int
+)
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -51,21 +60,21 @@ fun HomeScreen(
     onUpgrade: () -> Unit,
     viewModel: ViewModelForHistoryWalkI
 ) {
-    val listOfTuplesOfPaceAndDescription = listOf(
-        TupleOfPaceAndDescription(0.5f,"slow"),
-        TupleOfPaceAndDescription(1f, "medium"),
-        TupleOfPaceAndDescription(2f, "fast")
+
+    var dropdownMenuOfPacesIsExpanded by remember { mutableStateOf(false) }
+    val listOfTuplesOfDescriptionsAndNumbersOfSteps = listOf(
+        TupleOfDescriptionAndNumberOfSteps("low", 35_000),
+        TupleOfDescriptionAndNumberOfSteps("medium", 70_000),
+        TupleOfDescriptionAndNumberOfSteps("high", 140_000)
     )
-    val paceInSharedPreferences = viewModel.getSelectedPace()
-    var selectedTupleOfPaceAndDescription by remember {
+    val numberOfStepsInSharedPreferences = viewModel.getSelectedNumberOfSteps()
+    var selectedTupleOfDescriptionAndNumberOfSteps by remember {
         mutableStateOf(
-            listOfTuplesOfPaceAndDescription.find {
-                it.pace == paceInSharedPreferences
-            } ?: listOfTuplesOfPaceAndDescription[0]
+            listOfTuplesOfDescriptionsAndNumbersOfSteps.find {
+                it.numberOfSteps == numberOfStepsInSharedPreferences
+            } ?: listOfTuplesOfDescriptionsAndNumbersOfSteps[0]
         )
     }
-    var dropdownMenuOfPacesIsExpanded by remember { mutableStateOf(false) }
-
     val userHasUpgraded by viewModel.userHasUpgraded.observeAsState(initial = false)
 
     Box {
@@ -115,8 +124,9 @@ fun HomeScreen(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text(
-                    text = "Choose your pace:",
-                    style = typography.displayMedium
+                    text = "number of steps required to complete episode:",
+                    style = typography.displayMedium,
+                    textAlign = TextAlign.Center
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 ExposedDropdownMenuBox(
@@ -125,7 +135,7 @@ fun HomeScreen(
                 ) {
                     TextField(
                         modifier = Modifier.menuAnchor(),
-                        value = selectedTupleOfPaceAndDescription.description,
+                        value = DecimalFormat("#,###").format(selectedTupleOfDescriptionAndNumberOfSteps.numberOfSteps),
                         onValueChange = { },
                         readOnly = true,
                         textStyle = typography.displaySmall,
@@ -136,19 +146,19 @@ fun HomeScreen(
                     )
                     ExposedDropdownMenu(
                         expanded = dropdownMenuOfPacesIsExpanded,
-                        onDismissRequest = { dropdownMenuOfPacesIsExpanded = false }
+                        onDismissRequest = { dropdownMenuOfPacesIsExpanded = false },
                     ) {
-                        listOfTuplesOfPaceAndDescription.forEach { tupleOfPaceAndDescription ->
+                        listOfTuplesOfDescriptionsAndNumbersOfSteps.forEach { tupleOfDescriptionAndNumberOfSteps ->
                             DropdownMenuItem(
                                 text = {
                                     Text(
-                                        text = tupleOfPaceAndDescription.description,
+                                        text = tupleOfDescriptionAndNumberOfSteps.description,
                                         style = typography.displaySmall
                                     ) },
                                 onClick = {
-                                    selectedTupleOfPaceAndDescription = tupleOfPaceAndDescription
+                                    selectedTupleOfDescriptionAndNumberOfSteps = tupleOfDescriptionAndNumberOfSteps
                                     dropdownMenuOfPacesIsExpanded = false
-                                    viewModel.setSelectedPace(tupleOfPaceAndDescription.pace)
+                                    viewModel.setSelectedNumberOfSteps(tupleOfDescriptionAndNumberOfSteps.numberOfSteps)
                                 },
                                 contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding
                             )

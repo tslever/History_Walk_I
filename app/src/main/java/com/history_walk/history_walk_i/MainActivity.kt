@@ -57,7 +57,6 @@ fun HistoryWalkI(viewModel: ViewModelForHistoryWalkI = viewModel()) {
         }
         val stringRepresentingUri = uri.toString()
         viewModel.setSharedPreferenceRepresentingUriOfChosenDirectory(stringRepresentingUri)
-        viewModel.getIndexAndNumberOfHistoricalStepsCompletedOfPresentEpisode()
         if (weAreNavigatingToEpisodesScreen) {
             viewModel.setHasSeenHome()
             navController.navigate("episodes") {

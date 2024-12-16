@@ -42,7 +42,6 @@ data class Episode(
     val isCompleted: Boolean,
     val index: Int,
     val title: String,
-    val stepsRequired: Float,
     val isAvailable: Boolean
 )
 
@@ -53,15 +52,13 @@ fun EpisodesScreen(
     viewModel: ViewModelForHistoryWalkI,
     onEpisodeClick: (Int) -> Unit
 ) {
-    val (indexOfPresentEpisode, _) = viewModel.getIndexAndNumberOfHistoricalStepsCompletedOfPresentEpisode()
-    val selectedPace = viewModel.getSelectedPace()
-    val listOfEpisodes = viewModel.listOfPairsOfEpisodeTitlesAndNumbersOfHistoricalSteps.mapIndexed { index, (title, steps) ->
+    val indexOfPresentEpisode = viewModel.getIndexOfPresentEpisode()
+    val listOfEpisodes = viewModel.listOfTitlesOfEpisodes.mapIndexed { index, title ->
         val theIndex = index + 1
         Episode(
             isCompleted = theIndex < indexOfPresentEpisode,
             index = theIndex,
             title = title,
-            stepsRequired = 70_000f / selectedPace,
             isAvailable = theIndex <= indexOfPresentEpisode
         )
     }
@@ -89,9 +86,9 @@ fun EpisodesScreen(
                     text = "Episodes",
                     style = typography.titleMedium.copy(
                         shadow = Shadow(
-                            color = Color.Black.copy(alpha = 0.2f), // 20% opacity
-                            offset = Offset(0f, 3f), // 0dp x, 3dp y
-                            blurRadius = 4f // 4dp blur
+                            color = Color.Black.copy(alpha = 0.2f),
+                            offset = Offset(0f, 3f),
+                            blurRadius = 4f
                         )
                     ),
                     color = Color(0xFFFFC004), // ARGB
@@ -169,13 +166,7 @@ fun EpisodeRow(episode: Episode, onClick: () -> Unit) {
                 text = episode.title,
                 style = typography.labelLarge,
                 color = textColor,
-                modifier = Modifier.weight(0.6f)
-            )
-            Text(
-                text = episode.stepsRequired.toInt().toString(),
-                style = typography.labelLarge,
-                color = textColor,
-                modifier = Modifier.weight(0.2f)
+                modifier = Modifier.weight(0.8f)
             )
         }
     }

@@ -60,6 +60,6 @@ val Typography = Typography(
     labelLarge = TextStyle(
         fontFamily = Inknut_Antiqua,
         fontWeight = FontWeight.Normal,
-        fontSize = 13.75.sp
+        fontSize = 18.sp
     )
 )

@@ -24,9 +24,9 @@ fun EpisodeScreen(
     onBack: () -> Unit
 ) {
 
-    val (title, _) = viewModel.listOfPairsOfEpisodeTitlesAndNumbersOfHistoricalSteps[episodeId - 1]
+    val title = viewModel.listOfTitlesOfEpisodes[episodeId - 1]
 
-    Column() {
+    Column {
         IconButton(onClick = onBack) {
             Icon(
                 imageVector = Icons.Filled.ArrowBack,

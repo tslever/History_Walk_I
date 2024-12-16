@@ -16,35 +16,27 @@ import java.io.InputStreamReader
 class ViewModelForHistoryWalkI (application: Application) : AndroidViewModel(application) {
 
     private val billingRepository = BillingRepository(application.applicationContext)
+    val listOfTitlesOfEpisodes = listOf(
+        "The Alhambra",
+        "Crossing Spain",
+        "Journey to London",
+        "Moving to Ludlow",
+        "An Impoverished Captive",
+        "Knight in Shining Armour",
+        "Royal Progress",
+        "General Catherine",
+        "Producing an Heir",
+        "The King's Great Matter",
+        "Dowager Princess of Wales",
+        "Funeral Progress"
+    )
+    private val sharedPref = application.getSharedPreferences("appPreferences", Context.MODE_PRIVATE)
     val userHasUpgraded = billingRepository.userHasUpgraded
+
+
     init {
         billingRepository.startBillingConnection()
     }
-
-    override fun onCleared() {
-        super.onCleared()
-        billingRepository.endConnection()
-    }
-
-    fun purchasePremium(activity: Activity) {
-        billingRepository.launchPurchaseFlow(activity)
-    }
-
-    val listOfPairsOfEpisodeTitlesAndNumbersOfHistoricalSteps = listOf(
-        "The Alhambra" to 4_000,
-        "Crossing Spain" to 1_600_000,
-        "Journey to London" to 300,
-        "Moving to Ludlow" to 600,
-        "An Impoverished Captive" to 498,
-        "Knight in Shining Armour" to 198,
-        "Royal Progress" to 396,
-        "General Catherine" to 300,
-        "Producing an Heir" to 600,
-        "The King's Great Matter" to 498,
-        "Dowager Princess of Wales" to 198,
-        "Funeral Progress" to 396
-    )
-    private val sharedPref = application.getSharedPreferences("appPreferences", Context.MODE_PRIVATE)
 
 
     private fun getDocumentFileRepresentingChosenDirectory(): DocumentFile? {
@@ -56,9 +48,8 @@ class ViewModelForHistoryWalkI (application: Application) : AndroidViewModel(app
     }
 
 
-    fun getIndexAndNumberOfHistoricalStepsCompletedOfPresentEpisode(): Pair<Int, Int> {
+    fun getIndexOfPresentEpisode(): Int {
         var indexOfPresentEpisode = 1
-        var numberOfHistoricalStepsCompletedOfPresentEpisode = 0
 
         val documentFileRepresentingChosenDirectory = getDocumentFileRepresentingChosenDirectory()
         val fileName = "data_for_History_Walk_I.txt"
@@ -76,8 +67,7 @@ class ViewModelForHistoryWalkI (application: Application) : AndroidViewModel(app
                 contentResolver.openOutputStream(it)
             }
             outputStream?.use { output ->
-                val initialContent = """index of present episode: 1
-number of historical steps completed of present episode: 0"""
+                val initialContent = "index of present episode: 1"
                 output.write(initialContent.toByteArray())
                 output.flush()
             }
@@ -95,20 +85,17 @@ number of historical steps completed of present episode: 0"""
                             line.startsWith("index of present episode:") -> {
                                 indexOfPresentEpisode = line.substringAfter(":").trim().toIntOrNull() ?: 1
                             }
-                            line.startsWith("number of historical steps completed of present episode:") -> {
-                                numberOfHistoricalStepsCompletedOfPresentEpisode = line.substringAfter(":").trim().toIntOrNull() ?: 0
-                            }
                         }
                     }
                 }
             }
         }
-        return Pair(indexOfPresentEpisode, numberOfHistoricalStepsCompletedOfPresentEpisode)
+        return indexOfPresentEpisode
     }
 
 
-    fun getSelectedPace(): Float {
-        return sharedPref.getFloat("selectedPace", 1f)
+    fun getSelectedNumberOfSteps(): Int {
+        return sharedPref.getInt("selectedNumberOfSteps", 70_000)
     }
 
 
@@ -127,10 +114,14 @@ number of historical steps completed of present episode: 0"""
     }
 
 
-    fun setSharedPreferenceRepresentingUriOfChosenDirectory(stringRepresentingUri: String) {
-        viewModelScope.launch {
-            sharedPref.edit().putString("uriOfChosenDirectory", stringRepresentingUri).apply()
-        }
+    override fun onCleared() {
+        super.onCleared()
+        billingRepository.endConnection()
+    }
+
+
+    fun purchasePremium(activity: Activity) {
+        billingRepository.launchPurchaseFlow(activity)
     }
 
 
@@ -141,9 +132,16 @@ number of historical steps completed of present episode: 0"""
     }
 
 
-    fun setSelectedPace(pace: Float) {
+    fun setSelectedNumberOfSteps(numberOfSteps: Int) {
         viewModelScope.launch {
-            sharedPref.edit().putFloat("selectedPace", pace).apply()
+            sharedPref.edit().putInt("selectedNumberOfSteps", numberOfSteps).apply()
+        }
+    }
+
+
+    fun setSharedPreferenceRepresentingUriOfChosenDirectory(stringRepresentingUri: String) {
+        viewModelScope.launch {
+            sharedPref.edit().putString("uriOfChosenDirectory", stringRepresentingUri).apply()
         }
     }
 }
