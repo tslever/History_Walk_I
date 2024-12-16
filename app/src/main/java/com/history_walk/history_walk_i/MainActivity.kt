@@ -54,13 +54,13 @@ fun HistoryWalkI(viewModel: ViewModelForHistoryWalkI = viewModel()) {
         val contentResolver = application.contentResolver
         if (uri != null) {
             contentResolver.takePersistableUriPermission(uri, flags)
-        }
-        val stringRepresentingUri = uri.toString()
-        viewModel.setSharedPreferenceRepresentingUriOfChosenDirectory(stringRepresentingUri)
-        if (weAreNavigatingToEpisodesScreen) {
-            viewModel.setHasSeenHome()
-            navController.navigate("episodes") {
-                popUpTo("home") { inclusive = true }
+            val stringRepresentingUri = uri.toString()
+            viewModel.setSharedPreferenceRepresentingUriOfChosenDirectory(stringRepresentingUri)
+            if (weAreNavigatingToEpisodesScreen) {
+                viewModel.setHasSeenHome()
+                navController.navigate("episodes") {
+                    popUpTo("home") { inclusive = true }
+                }
             }
         }
         weAreNavigatingToEpisodesScreen = false
