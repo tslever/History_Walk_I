@@ -1,5 +1,6 @@
 package com.history_walk.history_walk_i
 
+import android.app.Activity
 import android.app.Application
 import android.content.Intent
 import android.net.Uri
@@ -13,6 +14,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -82,6 +84,9 @@ fun HistoryWalkI(viewModel: ViewModelForHistoryWalkI = viewModel()) {
             )
         }
         composable("home") {
+            val context = LocalContext.current
+            val currentActivity = context as? Activity
+
             HomeScreen(
                 onGoToEpisodes = {
                     if (viewModel.isDirectoryChosen()) {
@@ -95,7 +100,9 @@ fun HistoryWalkI(viewModel: ViewModelForHistoryWalkI = viewModel()) {
                     }
                 },
                 onUpgrade = {
-                    // TODO
+                    currentActivity?.let {
+                        viewModel.purchasePremium(it)
+                    }
                 },
                 onGoToSettings = {
                     navController.navigate("settings")

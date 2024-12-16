@@ -1,17 +1,34 @@
 package com.history_walk.history_walk_i.viewmodel
 
+import android.app.Activity
 import android.app.Application
 import android.content.Context
 import android.net.Uri
 import androidx.documentfile.provider.DocumentFile
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.history_walk.history_walk_i.billing.BillingRepository
 import kotlinx.coroutines.launch
 import java.io.BufferedReader
 import java.io.InputStreamReader
 
 
 class ViewModelForHistoryWalkI (application: Application) : AndroidViewModel(application) {
+
+    private val billingRepository = BillingRepository(application.applicationContext)
+    val userHasUpgraded = billingRepository.userHasUpgraded
+    init {
+        billingRepository.startBillingConnection()
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        billingRepository.endConnection()
+    }
+
+    fun purchasePremium(activity: Activity) {
+        billingRepository.launchPurchaseFlow(activity)
+    }
 
     val listOfPairsOfEpisodeTitlesAndNumbersOfHistoricalSteps = listOf(
         "The Alhambra" to 4_000,

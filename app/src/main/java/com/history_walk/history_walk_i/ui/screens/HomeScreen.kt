@@ -24,6 +24,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -64,6 +65,8 @@ fun HomeScreen(
         )
     }
     var dropdownMenuOfPacesIsExpanded by remember { mutableStateOf(false) }
+
+    val userHasUpgraded by viewModel.userHasUpgraded.observeAsState(initial = false)
 
     Box {
         Image(
@@ -177,29 +180,41 @@ fun HomeScreen(
             Column (
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text(
-                    text = "Note: The free version of this app allows you to log 2,000 steps per day. For unlimited steps, make a one-time purchase of \$5.99.",
-                    style = typography.displaySmall,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier
-                        .background(color = Color(0x80D9D9D9))
-                        .padding(vertical = 2.dp)
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Button(
-                    onClick = onUpgrade,
-                    modifier = Modifier
-                        .border(
-                            width = 1.dp,
+                if (!userHasUpgraded) {
+                    Text(
+                        text = "Note: The free version of this app allows you to log 2,000 steps per day. For unlimited steps, make a one-time purchase of \$5.99.",
+                        style = typography.displaySmall,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier
+                            .background(color = Color(0x80D9D9D9))
+                            .padding(vertical = 2.dp)
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Button(
+                        onClick = onUpgrade,
+                        modifier = Modifier
+                            .border(
+                                width = 1.dp,
+                                color = Color.Black
+                            )
+                            .defaultMinSize(minHeight = 48.dp),
+                        shape = MaterialTheme.shapes.small
+                    ) {
+                        Text(
+                            text = "Upgrade Now",
+                            style = typography.displaySmall,
                             color = Color.Black
                         )
-                        .defaultMinSize(minHeight = 48.dp),
-                    shape = MaterialTheme.shapes.small
-                ) {
+                    }
+                } else {
                     Text(
-                        text = "Upgrade Now",
+                        text = "You have unlocked the premium upgrade!",
                         style = typography.displaySmall,
-                        color = Color.Black
+                        textAlign = TextAlign.Center,
+                        color = Color(0xFF4CAF50), // Green
+                        modifier = Modifier
+                            .background(color = Color(0x80D9D9D9))
+                            .padding(vertical = 2.dp)
                     )
                 }
             }

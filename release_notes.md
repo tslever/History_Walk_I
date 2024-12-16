@@ -1,1 +1,1 @@
-History Walk I, version 1.0.0 includes an icon, a complete intro screen, a complete home screen except for upgrading, the beginning of a settings screen, an episodes screen, and the beginning of an episode screen.
+History Walk I, version 1.0.0 includes an icon, a complete intro screen, a complete home screen except for upgrading debugging, the beginning of a settings screen, an episodes screen, and the beginning of an episode screen.
