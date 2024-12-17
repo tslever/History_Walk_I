@@ -130,7 +130,10 @@ fun EpisodesScreen(
 
 
 @Composable
-fun EpisodeRow(episode: Episode, onClick: () -> Unit) {
+fun EpisodeRow(
+    episode: Episode,
+    onClick: () -> Unit
+) {
     val textColor = if (episode.isAvailable) Color(0xFF000000) else Color(0x86000000) // ARGB
 
     Surface(

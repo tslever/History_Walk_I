@@ -65,7 +65,7 @@ class BillingRepository(context: Context) : PurchasesUpdatedListener {
                     "BillingRepository",
                     "Failed to acknowledge purchase: ${billingResult.responseCode}"
                 )
-                /* TODO: Consider performing additional actions including:
+                /* TODO: Consider performing additional actions including
                     retrying,
                     notifying user,
                     logging detailed error information, and
@@ -116,7 +116,10 @@ class BillingRepository(context: Context) : PurchasesUpdatedListener {
 
 
     // Function getProductDetails gets product details.
-    private fun getProductDetails(callback: (ProductDetails?) -> Unit) {
+    private fun getProductDetails(
+        callback: (ProductDetails?) -> Unit
+    ) {
+
         val product = listOf(
             QueryProductDetailsParams.Product.newBuilder()
                 .setProductId(productId)
@@ -185,6 +188,7 @@ class BillingRepository(context: Context) : PurchasesUpdatedListener {
     /* Function handleBillingSetupFinished handles different response codes and
        decides whether to retry the connection. */
     private fun handleBillingSetupFinished(billingResult: BillingResult) {
+
         when (billingResult.responseCode) {
             BillingClient.BillingResponseCode.OK -> {
                 indexOfRetry = 0
