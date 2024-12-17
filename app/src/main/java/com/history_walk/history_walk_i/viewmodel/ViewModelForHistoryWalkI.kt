@@ -8,6 +8,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
+import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.history_walk.history_walk_i.billing.BillingRepository
 import kotlinx.coroutines.launch
@@ -15,6 +16,7 @@ import kotlinx.coroutines.launch
 
 class ViewModelForHistoryWalkI (application: Application) : AndroidViewModel(application) {
 
+    private val firebaseAuth: FirebaseAuth = FirebaseAuth.getInstance()
     private val billingRepository = BillingRepository(application.applicationContext)
     private val firestore = FirebaseFirestore.getInstance()
     private val episodeIndexDocument = firestore.collection("collection").document("document")
@@ -40,19 +42,44 @@ class ViewModelForHistoryWalkI (application: Application) : AndroidViewModel(app
 
     init {
         billingRepository.startBillingConnection()
-        fetchIndexOfPresentEpisode()
+        authenticateAnonymously()
+    }
+
+
+    private fun authenticateAnonymously() {
+        if (firebaseAuth.currentUser == null) {
+            firebaseAuth.signInAnonymously()
+                .addOnCompleteListener { task ->
+                    if (task.isSuccessful) {
+                        Log.d("ViewModelForHistoryWalkI", "Anonymous sign-in successful.")
+                        fetchIndexOfPresentEpisode()
+                    } else {
+                        Log.e("ViewModelForHistoryWalkI", "Anonymous sign-in failed.", task.exception)
+                        // TODO: Notify user.
+                    }
+                }
+        } else {
+            fetchIndexOfPresentEpisode()
+        }
     }
 
 
     private fun fetchIndexOfPresentEpisode() {
-        episodeIndexDocument.get()
+        val uid = firebaseAuth.currentUser?.uid
+        if (uid == null) {
+            Log.e("ViewModelForHistoryWalkI", "User is not authenticated.")
+            mutableLiveDataOfIndexOfPresentEpisode.postValue(1)
+            return
+        }
+        val userEpisodeDoc = firestore.collection("users").document(uid).collection("data").document("episodeIndex")
+        userEpisodeDoc.get()
             .addOnSuccessListener { document ->
                 if (document != null && document.exists()) {
                     val index = document.getLong("currentIndex")?.toInt() ?: 1
                     mutableLiveDataOfIndexOfPresentEpisode.postValue(index)
                 } else {
                     mutableLiveDataOfIndexOfPresentEpisode.postValue(1)
-                    episodeIndexDocument.set(mapOf("currentIndex" to 1))
+                    userEpisodeDoc.set(mapOf("currentIndex" to 1))
                         .addOnFailureListener { e ->
                             Log.e("ViewModelForHistoryWalkI", "Error initializing index: $e")
                         }
@@ -79,7 +106,14 @@ class ViewModelForHistoryWalkI (application: Application) : AndroidViewModel(app
         val currentIndex = mutableLiveDataOfIndexOfPresentEpisode.value ?: 1
         val newIndex = currentIndex + 1
         mutableLiveDataOfIndexOfPresentEpisode.value = newIndex
-        episodeIndexDocument.set(mapOf("currentIndex" to newIndex))
+
+        val uid = firebaseAuth.currentUser?.uid
+        if (uid == null) {
+            Log.e("ViewModelForHistoryWalkI", "User is not authenticated.")
+            return
+        }
+        val userEpisodeDoc = firestore.collection("users").document(uid).collection("data").document("episodeIndex")
+        userEpisodeDoc.set(mapOf("currentIndex" to newIndex))
             .addOnSuccessListener {
                 Log.d("ViewModelForHistoryWalkI", "Index updated to $newIndex")
             }

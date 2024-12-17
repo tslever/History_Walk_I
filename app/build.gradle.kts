@@ -58,6 +58,7 @@ dependencies {
     implementation(platform("com.google.firebase:firebase-bom:33.7.0"))
     implementation("com.google.firebase:firebase-analytics")
     implementation(libs.firebase.firestore.ktx)
+    implementation(libs.firebase.auth.ktx)
     // https://firebase.google.com/docs/android/setup#available-libraries
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
