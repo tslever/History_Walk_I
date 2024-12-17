@@ -1,20 +1,9 @@
 package com.history_walk.history_walk_i
 
-import android.app.Activity
-import android.app.Application
-import android.content.Intent
-import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
-import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -43,28 +32,6 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun HistoryWalkI(viewModel: ViewModelForHistoryWalkI = viewModel()) {
     val navController = rememberNavController()
-    var weAreNavigatingToEpisodesScreen by remember { mutableStateOf(false) }
-
-    val managedActivityResultLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.OpenDocumentTree()
-    ) {
-        uri: Uri? ->
-        val flags = Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
-        val application = viewModel.getApplication<Application>()
-        val contentResolver = application.contentResolver
-        if (uri != null) {
-            contentResolver.takePersistableUriPermission(uri, flags)
-            val stringRepresentingUri = uri.toString()
-            viewModel.setSharedPreferenceRepresentingUriOfChosenDirectory(stringRepresentingUri)
-            if (weAreNavigatingToEpisodesScreen) {
-                viewModel.setHasSeenHome()
-                navController.navigate("episodes") {
-                    popUpTo("home") { inclusive = true }
-                }
-            }
-        }
-        weAreNavigatingToEpisodesScreen = false
-    }
 
     NavHost(navController = navController, startDestination = "intro") {
         composable("intro") {
@@ -83,23 +50,15 @@ fun HistoryWalkI(viewModel: ViewModelForHistoryWalkI = viewModel()) {
             )
         }
         composable("home") {
-            val context = LocalContext.current
-            val currentActivity = context as? Activity
-
             HomeScreen(
                 onGoToEpisodes = {
-                    if (viewModel.isDirectoryChosen()) {
-                        viewModel.setHasSeenHome()
-                        navController.navigate("episodes") {
-                            popUpTo("home") { inclusive = true }
-                        }
-                    } else {
-                        weAreNavigatingToEpisodesScreen = true
-                        managedActivityResultLauncher.launch(null)
+                    viewModel.setHasSeenHome()
+                    navController.navigate("episodes") {
+                        popUpTo("home") { inclusive = true }
                     }
                 },
-                onUpgrade = {
-                    currentActivity?.let {
+                onUpgrade = { activity ->
+                    activity?.let {
                         viewModel.purchasePremium(it)
                     }
                 },

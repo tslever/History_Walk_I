@@ -3,19 +3,21 @@ package com.history_walk.history_walk_i.viewmodel
 import android.app.Activity
 import android.app.Application
 import android.content.Context
-import android.net.Uri
-import androidx.documentfile.provider.DocumentFile
+import android.util.Log
 import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
+import com.google.firebase.firestore.FirebaseFirestore
 import com.history_walk.history_walk_i.billing.BillingRepository
 import kotlinx.coroutines.launch
-import java.io.BufferedReader
-import java.io.InputStreamReader
 
 
 class ViewModelForHistoryWalkI (application: Application) : AndroidViewModel(application) {
 
     private val billingRepository = BillingRepository(application.applicationContext)
+    private val firestore = FirebaseFirestore.getInstance()
+    private val episodeIndexDocument = firestore.collection("collection").document("document")
     val listOfTitlesOfEpisodes = listOf(
         "The Alhambra",
         "Crossing Spain",
@@ -30,67 +32,36 @@ class ViewModelForHistoryWalkI (application: Application) : AndroidViewModel(app
         "Dowager Princess of Wales",
         "Funeral Progress"
     )
+    private val mutableLiveDataOfIndexOfPresentEpisode = MutableLiveData<Int>()
+    val indexOfPresentEpisode: LiveData<Int> get() = mutableLiveDataOfIndexOfPresentEpisode
     private val sharedPref = application.getSharedPreferences("appPreferences", Context.MODE_PRIVATE)
     val userHasUpgraded = billingRepository.userHasUpgraded
 
 
     init {
         billingRepository.startBillingConnection()
+        fetchIndexOfPresentEpisode()
     }
 
 
-    private fun getDocumentFileRepresentingChosenDirectory(): DocumentFile? {
-        val stringRepresentingUriOfChosenDirectory = getStringRepresentingUriOfChosenDirectory() ?: return null
-        val uriOfChosenDirectory = Uri.parse(stringRepresentingUriOfChosenDirectory)
-        val context = getApplication<Application>().applicationContext
-        val documentFile = DocumentFile.fromTreeUri(context, uriOfChosenDirectory)
-        return documentFile
-    }
-
-
-    fun getIndexOfPresentEpisode(): Int {
-        var indexOfPresentEpisode = 1
-
-        val documentFileRepresentingChosenDirectory = getDocumentFileRepresentingChosenDirectory()
-        val fileName = "data_for_History_Walk_I.txt"
-        var documentFileRepresentingFile = documentFileRepresentingChosenDirectory?.findFile(fileName)
-
-        val context = getApplication<Application>().applicationContext
-        val contentResolver = context.contentResolver
-
-        if (documentFileRepresentingFile == null) {
-            documentFileRepresentingFile = documentFileRepresentingChosenDirectory?.createFile(
-                "text/plain",
-                fileName
-            )
-            val outputStream = documentFileRepresentingFile?.uri?.let {
-                contentResolver.openOutputStream(it)
-            }
-            outputStream?.use { output ->
-                val initialContent = "index of present episode: 1"
-                output.write(initialContent.toByteArray())
-                output.flush()
-            }
-        }
-
-        documentFileRepresentingFile?.uri?.let { uri ->
-            val inputStream = contentResolver.openInputStream(uri)
-            inputStream.use { theInputStream ->
-                val inputStreamReader = InputStreamReader(theInputStream)
-                val bufferedReader = BufferedReader(inputStreamReader)
-                bufferedReader.use { theBufferedReader ->
-                    val listOfLines = theBufferedReader.readLines()
-                    for (line in listOfLines) {
-                        when {
-                            line.startsWith("index of present episode:") -> {
-                                indexOfPresentEpisode = line.substringAfter(":").trim().toIntOrNull() ?: 1
-                            }
+    private fun fetchIndexOfPresentEpisode() {
+        episodeIndexDocument.get()
+            .addOnSuccessListener { document ->
+                if (document != null && document.exists()) {
+                    val index = document.getLong("currentIndex")?.toInt() ?: 1
+                    mutableLiveDataOfIndexOfPresentEpisode.postValue(index)
+                } else {
+                    mutableLiveDataOfIndexOfPresentEpisode.postValue(1)
+                    episodeIndexDocument.set(mapOf("currentIndex" to 1))
+                        .addOnFailureListener { e ->
+                            Log.e("ViewModelForHistoryWalkI", "Error initializing index: $e")
                         }
-                    }
                 }
             }
-        }
-        return indexOfPresentEpisode
+            .addOnFailureListener { e ->
+                Log.e("ViewModelForHistoryWalkI", "Error fetching index: $e")
+                mutableLiveDataOfIndexOfPresentEpisode.postValue(1)
+            }
     }
 
 
@@ -99,18 +70,22 @@ class ViewModelForHistoryWalkI (application: Application) : AndroidViewModel(app
     }
 
 
-    private fun getStringRepresentingUriOfChosenDirectory(): String? {
-        return sharedPref.getString("uriOfChosenDirectory", null)
-    }
-
-
     fun hasSeenHome(): Boolean {
         return sharedPref.getBoolean("hasSeenHome", false)
     }
 
 
-    fun isDirectoryChosen(): Boolean {
-        return getStringRepresentingUriOfChosenDirectory() != null
+    fun incrementEpisodeIndex() {
+        val currentIndex = mutableLiveDataOfIndexOfPresentEpisode.value ?: 1
+        val newIndex = currentIndex + 1
+        mutableLiveDataOfIndexOfPresentEpisode.value = newIndex
+        episodeIndexDocument.set(mapOf("currentIndex" to newIndex))
+            .addOnSuccessListener {
+                Log.d("ViewModelForHistoryWalkI", "Index updated to $newIndex")
+            }
+            .addOnFailureListener { e ->
+                Log.e("ViewModelForHistoryWalkI", "Error updating index: $e")
+            }
     }
 
 
@@ -135,13 +110,6 @@ class ViewModelForHistoryWalkI (application: Application) : AndroidViewModel(app
     fun setSelectedNumberOfSteps(numberOfSteps: Int) {
         viewModelScope.launch {
             sharedPref.edit().putInt("selectedNumberOfSteps", numberOfSteps).apply()
-        }
-    }
-
-
-    fun setSharedPreferenceRepresentingUriOfChosenDirectory(stringRepresentingUri: String) {
-        viewModelScope.launch {
-            sharedPref.edit().putString("uriOfChosenDirectory", stringRepresentingUri).apply()
         }
     }
 }

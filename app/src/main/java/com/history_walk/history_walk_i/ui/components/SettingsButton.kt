@@ -1,3 +1,5 @@
+package com.history_walk.history_walk_i.ui.components
+
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.defaultMinSize

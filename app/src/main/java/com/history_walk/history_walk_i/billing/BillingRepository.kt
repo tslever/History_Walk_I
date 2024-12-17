@@ -57,7 +57,6 @@ class BillingRepository(context: Context) : PurchasesUpdatedListener {
                 )
                 /* TODO: Consider performing additional actions including
                     granting purchase items or benefits to user,
-                    updating a local database or shared preferences to reflect the acknowledged purchase,
                     notifying user, and
                     syncing purchase with a server.
                     */

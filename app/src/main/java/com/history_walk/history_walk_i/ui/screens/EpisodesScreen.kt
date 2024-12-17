@@ -1,6 +1,6 @@
 package com.history_walk.history_walk_i.ui.screens
 
-import SettingsButton
+import com.history_walk.history_walk_i.ui.components.SettingsButton
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -23,6 +23,8 @@ import androidx.compose.material3.MaterialTheme.typography
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -52,7 +54,7 @@ fun EpisodesScreen(
     viewModel: ViewModelForHistoryWalkI,
     onEpisodeClick: (Int) -> Unit
 ) {
-    val indexOfPresentEpisode = viewModel.getIndexOfPresentEpisode()
+    val indexOfPresentEpisode by viewModel.indexOfPresentEpisode.observeAsState(initial = 1)
     val listOfEpisodes = viewModel.listOfTitlesOfEpisodes.mapIndexed { index, title ->
         val theIndex = index + 1
         Episode(

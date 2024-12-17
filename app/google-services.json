@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "481429069555",
+    "project_id": "history-walk-i",
+    "storage_bucket": "history-walk-i.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:481429069555:android:85e7cc1ccfbbbafab0a186",
+        "android_client_info": {
+          "package_name": "com.history_walk.history_walk_i"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB1q69IL8ZeR2aQ7I0kxVeNYjkAzibj0DI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
