@@ -116,7 +116,7 @@ fun HistoryWalkI(
                 onGoToEpisodes = {
                     viewModel.setHasSeenHome()
                     navController.navigate("episodes") {
-                        popUpTo("home") { inclusive = true }
+                        launchSingleTop = true
                     }
                 },
                 onUpgrade = { activity ->
@@ -136,11 +136,11 @@ fun HistoryWalkI(
                 onContinue = {
                     if (!viewModel.hasSeenHome()) {
                         navController.navigate("home") {
-                            popUpTo("intro") { inclusive = true }
+
                         }
                     } else {
                         navController.navigate("episodes") {
-                            popUpTo("intro") { inclusive = true }
+
                         }
                     }
                 }
