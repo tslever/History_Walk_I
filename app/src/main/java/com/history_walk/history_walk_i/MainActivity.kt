@@ -93,8 +93,7 @@ fun HistoryWalkI(
                 EpisodeScreen(
                     episodeId = episodeId,
                     viewModel = viewModel,
-                    onGoToSettings = { navController.navigate("settings") },
-                    onBack = { navController.popBackStack() }
+                    onGoToSettings = { navController.navigate("settings") }
                 )
             }
         }
