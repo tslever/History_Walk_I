@@ -40,6 +40,8 @@ class ViewModelForHistoryWalkI (application: Application) : AndroidViewModel(app
     val indexOfPresentEpisode: LiveData<Int> get() = mutableLiveDataOfIndexOfPresentEpisode
     private val mutableLiveDataOfIndicatorOfWhetherUserHasUpgraded = MutableLiveData(false)
     val userHasUpgraded: LiveData<Boolean> = mutableLiveDataOfIndicatorOfWhetherUserHasUpgraded
+    private val mutableLiveDataOfNotification = MutableLiveData<String?>()
+    val notification: LiveData<String?> get() = mutableLiveDataOfNotification
     private val sharedPref = application.getSharedPreferences("appPreferences", Context.MODE_PRIVATE)
 
 
@@ -56,6 +58,11 @@ class ViewModelForHistoryWalkI (application: Application) : AndroidViewModel(app
                 mutableLiveDataOfIndicatorOfWhetherUserHasUpgraded.postValue(false)
             }
         }
+    }
+
+
+    fun clearNotification() {
+        mutableLiveDataOfNotification.postValue(null)
     }
 
 
@@ -152,15 +159,21 @@ class ViewModelForHistoryWalkI (application: Application) : AndroidViewModel(app
     }
 
 
+    override fun onNotifyUser(message: String) {
+        mutableLiveDataOfNotification.postValue(message)
+    }
+
+
     override fun onPurchaseFailure(responseCode: Int) {
         Log.e("ViewModelForHistoryWalkI", "Purchase failed with response code: $responseCode")
-        // TODO: Notify user.
+        mutableLiveDataOfNotification.postValue("Purchase failed with response code: $responseCode")
     }
 
 
     override fun onPurchaseSuccess() {
         viewModelScope.launch {
             setIndicatorOfWhetherUserHasUpgraded(true)
+            mutableLiveDataOfNotification.postValue("Purchase successful! You have upgraded to premium.")
         }
     }
 
@@ -191,6 +204,7 @@ class ViewModelForHistoryWalkI (application: Application) : AndroidViewModel(app
             }
             .addOnFailureListener { e ->
                 Log.e("ViewModelForHistoryWalkI", "Error setting premium status: $e")
+                mutableLiveDataOfNotification.postValue("Error setting premium status: $e")
             }
     }
 
@@ -232,6 +246,7 @@ class ViewModelForHistoryWalkI (application: Application) : AndroidViewModel(app
                 } else {
                     Log.e("ViewModelForHistoryWalkI", "Email sign-up failed", task.exception)
                     onResult(false, task.exception?.message)
+                    mutableLiveDataOfNotification.postValue("Email sign-up failed: ${task.exception?.message}")
                 }
             }
     }

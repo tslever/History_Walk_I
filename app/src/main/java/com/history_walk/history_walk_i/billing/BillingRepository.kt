@@ -3,8 +3,6 @@ package com.history_walk.history_walk_i.billing
 import android.app.Activity
 import android.content.Context
 import android.util.Log
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
 import com.android.billingclient.api.AcknowledgePurchaseParams
 import com.android.billingclient.api.BillingClient
 import com.android.billingclient.api.BillingClientStateListener
@@ -33,6 +31,7 @@ class BillingRepository(context: Context) : PurchasesUpdatedListener {
     interface BillingListener {
         fun onPurchaseSuccess()
         fun onPurchaseFailure(responseCode: Int)
+        fun onNotifyUser(message: String)
     }
 
     private var billingClient: BillingClient = BillingClient.newBuilder(context)
@@ -59,21 +58,13 @@ class BillingRepository(context: Context) : PurchasesUpdatedListener {
                     "BillingRepository",
                     "Purchase acknowledged successfully."
                 )
-                /* TODO: Consider performing additional actions including
-                    granting purchase items or benefits to user,
-                    notifying user, and
-                    syncing purchase with a server.
-                    */
+                billingListener?.onNotifyUser("Purchase acknowledged successfully.")
             } else {
                 Log.e(
                     "BillingRepository",
                     "Failed to acknowledge purchase: ${billingResult.responseCode}"
                 )
-                /* TODO: Consider performing additional actions including
-                    retrying,
-                    notifying user,
-                    logging detailed error information, and
-                    handling specific error codes. */
+                billingListener?.onNotifyUser("Failed to acknowledge purchase: ${billingResult.responseCode}")
             }
         }
     }
@@ -100,6 +91,7 @@ class BillingRepository(context: Context) : PurchasesUpdatedListener {
                     "BillingRepository",
                     "Error querying purchases: ${billingResult.responseCode}"
                 )
+                billingListener?.onNotifyUser("Error querying purchases: ${billingResult.responseCode}")
             }
         }
     }
@@ -123,7 +115,6 @@ class BillingRepository(context: Context) : PurchasesUpdatedListener {
     private fun getProductDetails(
         callback: (ProductDetails?) -> Unit
     ) {
-
         val product = listOf(
             QueryProductDetailsParams.Product.newBuilder()
                 .setProductId(productId)
@@ -160,7 +151,7 @@ class BillingRepository(context: Context) : PurchasesUpdatedListener {
                     "BillingRepository",
                     "Exceeded maximum retry attempts for BillingClient connection."
                 )
-                // TODO: Notify user.
+                billingListener?.onNotifyUser("Exceeded maximum retry attempts for BillingClient connection.")
                 return@launch
             }
 
@@ -169,6 +160,7 @@ class BillingRepository(context: Context) : PurchasesUpdatedListener {
                 "BillingRepository",
                 "Retrying BillingClient connection in $delayBeforeRetry ms (Attempt $indexOfRetry)"
             )
+            billingListener?.onNotifyUser("Retrying BillingClient connection in $delayBeforeInitialRetry ms (Attempt $indexOfRetry)")
             delay(delayBeforeRetry)
 
             mutex.withLock {
@@ -206,7 +198,7 @@ class BillingRepository(context: Context) : PurchasesUpdatedListener {
                     "BillingRepository",
                     "Billing setup failed with irrecoverable response code: ${billingResult.responseCode}"
                 )
-                // TODO: Notify user.
+                billingListener?.onNotifyUser("Billing setup failed with irrecoverable response code: ${billingResult.responseCode}")
             }
 
             BillingClient.BillingResponseCode.SERVICE_DISCONNECTED,
@@ -216,7 +208,7 @@ class BillingRepository(context: Context) : PurchasesUpdatedListener {
                     "BillingRepository",
                     "Billing setup failed with recoverable response code: ${billingResult.responseCode}"
                 )
-                // TODO: Notify user.
+                billingListener?.onNotifyUser("Billing setup failed with recoverable error code: ${billingResult.responseCode}")
                 handleBillingServiceDisconnected()
             }
 
@@ -227,7 +219,7 @@ class BillingRepository(context: Context) : PurchasesUpdatedListener {
                     "BillingRepository",
                     "Billing setup failed with unknown response code: ${billingResult.responseCode}"
                 )
-                // TODO: Notify user.
+                billingListener?.onNotifyUser("Billing setup failed with unknown error code: ${billingResult.responseCode}")
                 handleBillingServiceDisconnected()
             }
         }
@@ -263,7 +255,7 @@ class BillingRepository(context: Context) : PurchasesUpdatedListener {
                     "BillingRepository",
                     "Product details not found for Product ID: $productId"
                 )
-                // TODO: Notify user.
+                billingListener?.onNotifyUser("Product details not found for Product ID: $productId")
             }
         }
     }
@@ -284,7 +276,7 @@ class BillingRepository(context: Context) : PurchasesUpdatedListener {
                 "BillingRepository",
                 "User canceled the purchase flow."
             )
-            // TODO: Notify user.
+            billingListener?.onNotifyUser("User canceled the purchase flow.")
         }
         else {
             Log.e(
@@ -292,7 +284,7 @@ class BillingRepository(context: Context) : PurchasesUpdatedListener {
                 "Purchase update failed with response code: ${billingResult.responseCode}"
             )
             billingListener?.onPurchaseFailure(billingResult.responseCode)
-            // TODO: Notify user.
+            billingListener?.onNotifyUser("Purchase update failed with response code: ${billingResult.responseCode}")
         }
     }
 
