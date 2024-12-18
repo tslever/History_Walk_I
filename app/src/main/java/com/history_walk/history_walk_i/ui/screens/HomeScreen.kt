@@ -35,6 +35,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -73,6 +74,7 @@ fun HomeScreen(
         )
     }
     val userHasUpgraded by viewModel.userHasUpgraded.observeAsState(initial = false)
+    val context = LocalContext.current
 
     Box {
         Image(
@@ -200,7 +202,10 @@ fun HomeScreen(
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Button(
-                        onClick = { onUpgrade(null) },
+                        onClick = {
+                            val currentActivity = context as? Activity
+                            onUpgrade(currentActivity)
+                        },
                         modifier = Modifier
                             .border(
                                 width = 1.dp,

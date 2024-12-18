@@ -30,18 +30,22 @@ import kotlin.math.pow
 
 class BillingRepository(context: Context) : PurchasesUpdatedListener {
 
+    interface BillingListener {
+        fun onPurchaseSuccess()
+        fun onPurchaseFailure(responseCode: Int)
+    }
+
     private var billingClient: BillingClient = BillingClient.newBuilder(context)
         .setListener(this)
         .enablePendingPurchases()
         .build()
+    private var billingListener: BillingListener? = null
     private val coroutineScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private val delayBeforeInitialRetry = 3000L // milliseconds
     private var indexOfRetry = 0
     private val maximumNumberOfRetries = 5
-    private val mutableLiveDataOfIndicatorOfWhetherUserHasUpgraded = MutableLiveData(false)
     private val mutex = Mutex()
     private val productId = "premium_upgrade"
-    val userHasUpgraded: LiveData<Boolean> = mutableLiveDataOfIndicatorOfWhetherUserHasUpgraded
 
 
     // Function acknowledgePurchase acknowledge a purchase.
@@ -85,7 +89,7 @@ class BillingRepository(context: Context) : PurchasesUpdatedListener {
                 for (purchase in purchases) {
                     if (purchase.products.contains(productId) &&
                         purchase.purchaseState == Purchase.PurchaseState.PURCHASED) {
-                        mutableLiveDataOfIndicatorOfWhetherUserHasUpgraded.postValue(true)
+                        billingListener?.onPurchaseSuccess()
                         if (!purchase.isAcknowledged) {
                             acknowledgePurchase(purchase)
                         }
@@ -233,7 +237,7 @@ class BillingRepository(context: Context) : PurchasesUpdatedListener {
     // Function handlePurchase handles a purchase.
     private fun handlePurchase(purchase: Purchase) {
         if (purchase.products.contains(productId)) {
-            mutableLiveDataOfIndicatorOfWhetherUserHasUpgraded.postValue(true)
+            billingListener?.onPurchaseSuccess()
             if (!purchase.isAcknowledged) {
                 acknowledgePurchase(purchase)
             }
@@ -282,16 +286,19 @@ class BillingRepository(context: Context) : PurchasesUpdatedListener {
             )
             // TODO: Notify user.
         }
-
-        // TODO: Handle other potential response codes.
-
         else {
             Log.e(
                 "BillingRepository",
                 "Purchase update failed with response code: ${billingResult.responseCode}"
             )
+            billingListener?.onPurchaseFailure(billingResult.responseCode)
             // TODO: Notify user.
         }
+    }
+
+
+    fun setBillingListener(listener: BillingListener) {
+        billingListener = listener
     }
 
 

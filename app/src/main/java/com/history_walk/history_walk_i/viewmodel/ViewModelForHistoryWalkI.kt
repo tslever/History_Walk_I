@@ -15,7 +15,7 @@ import com.history_walk.history_walk_i.billing.BillingRepository
 import kotlinx.coroutines.launch
 
 
-class ViewModelForHistoryWalkI (application: Application) : AndroidViewModel(application) {
+class ViewModelForHistoryWalkI (application: Application) : AndroidViewModel(application), BillingRepository.BillingListener {
 
     private val firebaseAuth: FirebaseAuth = FirebaseAuth.getInstance()
     private val billingRepository = BillingRepository(application.applicationContext)
@@ -38,17 +38,22 @@ class ViewModelForHistoryWalkI (application: Application) : AndroidViewModel(app
     val firebaseUser: LiveData<FirebaseUser?> get() = mutableLiveDataOfFirebaseUser
     private val mutableLiveDataOfIndexOfPresentEpisode = MutableLiveData<Int>()
     val indexOfPresentEpisode: LiveData<Int> get() = mutableLiveDataOfIndexOfPresentEpisode
+    private val mutableLiveDataOfIndicatorOfWhetherUserHasUpgraded = MutableLiveData(false)
+    val userHasUpgraded: LiveData<Boolean> = mutableLiveDataOfIndicatorOfWhetherUserHasUpgraded
     private val sharedPref = application.getSharedPreferences("appPreferences", Context.MODE_PRIVATE)
-    val userHasUpgraded = billingRepository.userHasUpgraded
 
 
     init {
+        billingRepository.setBillingListener(this)
         billingRepository.startBillingConnection()
         mutableLiveDataOfFirebaseUser.value = firebaseAuth.currentUser
         firebaseAuth.addAuthStateListener { theFirebaseAuth ->
             mutableLiveDataOfFirebaseUser.value = theFirebaseAuth.currentUser
             if (theFirebaseAuth.currentUser != null) {
                 fetchIndexOfPresentEpisode()
+                fetchIndicatorOfWhetherUserHasUpgraded()
+            } else {
+                mutableLiveDataOfIndicatorOfWhetherUserHasUpgraded.postValue(false)
             }
         }
     }
@@ -78,6 +83,34 @@ class ViewModelForHistoryWalkI (application: Application) : AndroidViewModel(app
             .addOnFailureListener { e ->
                 Log.e("ViewModelForHistoryWalkI", "Error fetching index: $e")
                 mutableLiveDataOfIndexOfPresentEpisode.postValue(1)
+            }
+    }
+
+
+    private fun fetchIndicatorOfWhetherUserHasUpgraded() {
+        val uid = firebaseAuth.currentUser?.uid
+        if (uid == null) {
+            Log.e("ViewModelForHistoryWalkI", "User is not authenticated.")
+            mutableLiveDataOfIndicatorOfWhetherUserHasUpgraded.postValue(false)
+            return
+        }
+        val premiumDoc = firebaseFirestore.collection("users").document(uid).collection("data").document("premiumStatus")
+        premiumDoc.get()
+            .addOnSuccessListener { document ->
+                if (document != null && document.exists()) {
+                    val premium = document.getBoolean("isPremium") ?: false
+                    mutableLiveDataOfIndicatorOfWhetherUserHasUpgraded.postValue(premium)
+                } else {
+                    mutableLiveDataOfIndicatorOfWhetherUserHasUpgraded.postValue(false)
+                    premiumDoc.set(mapOf("isPremium" to false))
+                        .addOnFailureListener { e ->
+                            Log.e("ViewModelForHistoryWalkI", "Error initializing premium status: $e")
+                        }
+                }
+            }
+            .addOnFailureListener { e ->
+                Log.e("ViewModelForHistoryWalkI", "Error fetching premium status: $e")
+                mutableLiveDataOfIndicatorOfWhetherUserHasUpgraded.postValue(false)
             }
     }
 
@@ -119,6 +152,19 @@ class ViewModelForHistoryWalkI (application: Application) : AndroidViewModel(app
     }
 
 
+    override fun onPurchaseFailure(responseCode: Int) {
+        Log.e("ViewModelForHistoryWalkI", "Purchase failed with response code: $responseCode")
+        // TODO: Notify user.
+    }
+
+
+    override fun onPurchaseSuccess() {
+        viewModelScope.launch {
+            setIndicatorOfWhetherUserHasUpgraded(true)
+        }
+    }
+
+
     fun purchasePremium(activity: Activity) {
         billingRepository.launchPurchaseFlow(activity)
     }
@@ -128,6 +174,24 @@ class ViewModelForHistoryWalkI (application: Application) : AndroidViewModel(app
         viewModelScope.launch {
             sharedPref.edit().putBoolean("hasSeenHome", true).apply()
         }
+    }
+
+
+    private fun setIndicatorOfWhetherUserHasUpgraded(status: Boolean) {
+        val uid = firebaseAuth.currentUser?.uid
+        if (uid == null) {
+            Log.e("ViewModelForHistoryWalkI", "User is not authenticated")
+            return
+        }
+        val premiumDoc = firebaseFirestore.collection("users").document(uid).collection("data").document("premiumStatus")
+        premiumDoc.set(mapOf("isPremium" to status))
+            .addOnSuccessListener {
+                mutableLiveDataOfIndicatorOfWhetherUserHasUpgraded.postValue(status)
+                Log.d("ViewModelForHistoryWalkI", "Premium status set to $status")
+            }
+            .addOnFailureListener { e ->
+                Log.e("ViewModelForHistoryWalkI", "Error setting premium status: $e")
+            }
     }
 
 
@@ -154,6 +218,7 @@ class ViewModelForHistoryWalkI (application: Application) : AndroidViewModel(app
 
     fun signOut() {
         firebaseAuth.signOut()
+        mutableLiveDataOfIndicatorOfWhetherUserHasUpgraded.postValue(false)
     }
 
 
@@ -162,6 +227,7 @@ class ViewModelForHistoryWalkI (application: Application) : AndroidViewModel(app
             .addOnCompleteListener { task ->
                 if (task.isSuccessful) {
                     Log.d("ViewModelForHistoryWalkI", "Email sign-up successful.")
+                    setIndicatorOfWhetherUserHasUpgraded(false)
                     onResult(true, null)
                 } else {
                     Log.e("ViewModelForHistoryWalkI", "Email sign-up failed", task.exception)

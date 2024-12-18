@@ -88,8 +88,8 @@ fun HistoryWalkI(
                     }
                 },
                 onUpgrade = { activity ->
-                    activity?.let {
-                        viewModel.purchasePremium(it)
+                    if (activity != null) {
+                        viewModel.purchasePremium(activity)
                     }
                 },
                 onGoToSettings = {
@@ -133,7 +133,7 @@ fun HistoryWalkI(
             SettingsScreen(
                 viewModel = viewModel,
                 onSignOut = {
-                    navController.navigate("login") {
+                    navController.navigate("logIn") {
                         popUpTo("settings") { inclusive = true }
                     }
                 }
@@ -145,12 +145,12 @@ fun HistoryWalkI(
                 viewModel = viewModel,
                 onSignUpSuccess = {
                     navController.navigate("intro") {
-                        popUpTo("signup") { inclusive = true }
+                        popUpTo("signUp") { inclusive = true }
                     }
                 },
                 onNavigateToLogin = {
-                    navController.navigate("login") {
-                        popUpTo("signup") { inclusive = true }
+                    navController.navigate("logIn") {
+                        popUpTo("signUp") { inclusive = true }
                     }
                 }
             )
