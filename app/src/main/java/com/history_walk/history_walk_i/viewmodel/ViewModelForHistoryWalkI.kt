@@ -246,7 +246,6 @@ class ViewModelForHistoryWalkI (application: Application) : AndroidViewModel(app
                 } else {
                     Log.e("ViewModelForHistoryWalkI", "Email sign-up failed", task.exception)
                     onResult(false, task.exception?.message)
-                    mutableLiveDataOfNotification.postValue("Email sign-up failed: ${task.exception?.message}")
                 }
             }
     }

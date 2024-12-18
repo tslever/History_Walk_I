@@ -35,6 +35,7 @@ fun SignUpScreen(
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+    val isSignUpEnabled = emailAddress.trim().isNotEmpty() && password.trim().isNotEmpty() && confirmPassword.trim().isNotEmpty()
 
     Column(
         modifier = Modifier
@@ -88,7 +89,8 @@ fun SignUpScreen(
                     }
                 }
             },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            enabled = isSignUpEnabled
         ) {
             Text(text = "Sign Up")
         }
