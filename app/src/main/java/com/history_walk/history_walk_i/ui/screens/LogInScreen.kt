@@ -32,8 +32,9 @@ fun LogInScreen(
     onNavigateToSignUp: () -> Unit
 ) {
     var emailAddress by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+    var password by remember { mutableStateOf("") }
+    val isLogInEnabled = emailAddress.trim().isNotEmpty() && password.trim().isNotEmpty()
 
     Column(
         modifier = Modifier
@@ -71,7 +72,8 @@ fun LogInScreen(
                     }
                 }
             },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            enabled = isLogInEnabled
         ) {
             Text(text = "Log In")
         }
