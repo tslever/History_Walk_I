@@ -18,7 +18,7 @@ import kotlinx.coroutines.launch
 
 class ViewModelForHistoryWalkI (application: Application) : AndroidViewModel(application), BillingRepository.BillingListener {
 
-    private lateinit var billingRepository: BillingRepository
+    private var billingRepository: BillingRepository? = null
     private val firebaseAuth: FirebaseAuth = FirebaseAuth.getInstance()
     private val firebaseFirestore = FirebaseFirestore.getInstance()
     val listOfTitlesOfEpisodes = listOf(
@@ -49,14 +49,18 @@ class ViewModelForHistoryWalkI (application: Application) : AndroidViewModel(app
     init {
         mutableLiveDataOfFirebaseUser.value = firebaseAuth.currentUser
         firebaseAuth.addAuthStateListener { theFirebaseAuth ->
-            mutableLiveDataOfFirebaseUser.value = theFirebaseAuth.currentUser
-            if (theFirebaseAuth.currentUser != null) {
-                billingRepository = BillingRepository(application.applicationContext, theFirebaseAuth.currentUser!!.uid)
-                billingRepository.setBillingListener(this)
-                billingRepository.startBillingConnection()
+            val currentUser = theFirebaseAuth.currentUser
+            mutableLiveDataOfFirebaseUser.value = currentUser
+            if (currentUser != null) {
+                billingRepository?.endConnection()
+                billingRepository = BillingRepository(application.applicationContext, currentUser.uid)
+                billingRepository?.setBillingListener(this)
+                billingRepository?.startBillingConnection()
                 fetchIndexOfPresentEpisode()
                 fetchIndicatorOfWhetherUserHasUpgraded()
             } else {
+                billingRepository?.endConnection()
+                billingRepository = null
                 mutableLiveDataOfIndicatorOfWhetherUserHasUpgraded.postValue(false)
             }
         }
@@ -157,9 +161,7 @@ class ViewModelForHistoryWalkI (application: Application) : AndroidViewModel(app
 
     override fun onCleared() {
         super.onCleared()
-        if (::billingRepository.isInitialized) {
-            billingRepository.endConnection()
-        }
+        billingRepository?.endConnection()
     }
 
 
@@ -182,12 +184,11 @@ class ViewModelForHistoryWalkI (application: Application) : AndroidViewModel(app
 
 
     fun purchasePremium(activity: Activity) {
-        if (::billingRepository.isInitialized) {
-            billingRepository.launchPurchaseFlow(activity)
-        } else {
-            Log.e("ViewModelForHistoryWalkI", "BillingRepository is not initialized.")
-            mutableLiveDataOfNotification.postValue("BillingRepository is not initialized.")
-        }
+        billingRepository?.launchPurchaseFlow(activity)
+            ?: run {
+                Log.e("ViewModelForHistoryWalkI", "BillingRepository is not initialized.")
+                mutableLiveDataOfNotification.postValue("BillingRepository is not initialized.")
+            }
     }
 
 
@@ -240,7 +241,6 @@ class ViewModelForHistoryWalkI (application: Application) : AndroidViewModel(app
 
     fun signOut() {
         firebaseAuth.signOut()
-        mutableLiveDataOfIndicatorOfWhetherUserHasUpgraded.postValue(false)
     }
 
 
