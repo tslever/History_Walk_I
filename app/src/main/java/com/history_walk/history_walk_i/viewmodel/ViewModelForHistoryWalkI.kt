@@ -8,6 +8,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
+import com.google.api.Billing
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.firestore.FirebaseFirestore
@@ -17,8 +18,8 @@ import kotlinx.coroutines.launch
 
 class ViewModelForHistoryWalkI (application: Application) : AndroidViewModel(application), BillingRepository.BillingListener {
 
+    private lateinit var billingRepository: BillingRepository
     private val firebaseAuth: FirebaseAuth = FirebaseAuth.getInstance()
-    private val billingRepository = BillingRepository(application.applicationContext)
     private val firebaseFirestore = FirebaseFirestore.getInstance()
     val listOfTitlesOfEpisodes = listOf(
         "The Alhambra",
@@ -46,12 +47,13 @@ class ViewModelForHistoryWalkI (application: Application) : AndroidViewModel(app
 
 
     init {
-        billingRepository.setBillingListener(this)
-        billingRepository.startBillingConnection()
         mutableLiveDataOfFirebaseUser.value = firebaseAuth.currentUser
         firebaseAuth.addAuthStateListener { theFirebaseAuth ->
             mutableLiveDataOfFirebaseUser.value = theFirebaseAuth.currentUser
             if (theFirebaseAuth.currentUser != null) {
+                billingRepository = BillingRepository(application.applicationContext, theFirebaseAuth.currentUser!!.uid)
+                billingRepository.setBillingListener(this)
+                billingRepository.startBillingConnection()
                 fetchIndexOfPresentEpisode()
                 fetchIndicatorOfWhetherUserHasUpgraded()
             } else {
@@ -155,7 +157,9 @@ class ViewModelForHistoryWalkI (application: Application) : AndroidViewModel(app
 
     override fun onCleared() {
         super.onCleared()
-        billingRepository.endConnection()
+        if (::billingRepository.isInitialized) {
+            billingRepository.endConnection()
+        }
     }
 
 
@@ -173,13 +177,17 @@ class ViewModelForHistoryWalkI (application: Application) : AndroidViewModel(app
     override fun onPurchaseSuccess() {
         viewModelScope.launch {
             setIndicatorOfWhetherUserHasUpgraded(true)
-            mutableLiveDataOfNotification.postValue("Purchase successful! You have upgraded to premium.")
         }
     }
 
 
     fun purchasePremium(activity: Activity) {
-        billingRepository.launchPurchaseFlow(activity)
+        if (::billingRepository.isInitialized) {
+            billingRepository.launchPurchaseFlow(activity)
+        } else {
+            Log.e("ViewModelForHistoryWalkI", "BillingRepository is not initialized.")
+            mutableLiveDataOfNotification.postValue("BillingRepository is not initialized.")
+        }
     }
 
 

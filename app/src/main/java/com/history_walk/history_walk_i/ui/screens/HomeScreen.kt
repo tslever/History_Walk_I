@@ -198,6 +198,7 @@ fun HomeScreen(
                         textAlign = TextAlign.Center,
                         modifier = Modifier
                             .background(color = Color(0x80D9D9D9))
+                            .fillMaxWidth()
                             .padding(vertical = 2.dp)
                     )
                     Spacer(modifier = Modifier.height(8.dp))
@@ -225,9 +226,9 @@ fun HomeScreen(
                         text = "You have unlocked the premium upgrade!",
                         style = typography.displaySmall,
                         textAlign = TextAlign.Center,
-                        color = Color(0xFF4CAF50), // Green
                         modifier = Modifier
                             .background(color = Color(0x80D9D9D9))
+                            .fillMaxWidth()
                             .padding(vertical = 2.dp)
                     )
                 }

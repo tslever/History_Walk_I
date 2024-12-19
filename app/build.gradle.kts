@@ -13,7 +13,7 @@ android {
         applicationId = "com.history_walk.history_walk_i"
         minSdk = 24
         targetSdk = 34
-        versionCode = 4
+        versionCode = 6
         versionName = "1.0.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
