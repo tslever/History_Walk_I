@@ -26,6 +26,7 @@ import com.history_walk.history_walk_i.ui.screens.IntroScreen
 import com.history_walk.history_walk_i.ui.screens.LogInScreen
 import com.history_walk.history_walk_i.ui.screens.SettingsScreen
 import com.history_walk.history_walk_i.ui.screens.SignUpScreen
+import com.history_walk.history_walk_i.ui.screens.TfaScreen
 import com.history_walk.history_walk_i.ui.theme.ThemeForHistoryWalkI
 import com.history_walk.history_walk_i.viewmodel.ViewModelForHistoryWalkI
 
@@ -51,6 +52,7 @@ fun HistoryWalkI(
     var showDialog by remember { mutableStateOf(false) }
     val stateOfNotification by viewModel.notification.observeAsState()
     val stateOfFirebaseUser by viewModel.firebaseUser.observeAsState()
+    val stateOfTfaVerified by viewModel.tfaHasOccurred.observeAsState(false)
 
     LaunchedEffect(stateOfNotification) {
         stateOfNotification?.let { theMessage ->
@@ -77,7 +79,7 @@ fun HistoryWalkI(
 
     NavHost(
         navController = navController,
-        startDestination = if (stateOfFirebaseUser == null) "logIn" else "intro"
+        startDestination = "logIn"
     ) {
 
         composable(
@@ -150,8 +152,8 @@ fun HistoryWalkI(
             LogInScreen(
                 viewModelForHistoryWalkI = viewModel,
                 onLogInSuccess = {
-                    navController.navigate("intro") {
-                        popUpTo("login") { inclusive = true }
+                    navController.navigate("TFA") {
+                        popUpTo("logIn") { inclusive = true }
                     }
                 },
                 onNavigateToSignUp = {
@@ -164,6 +166,7 @@ fun HistoryWalkI(
             SettingsScreen(
                 viewModel = viewModel,
                 onSignOut = {
+                    viewModel.signOut()
                     navController.navigate("logIn") {
                         popUpTo("settings") { inclusive = true }
                     }
@@ -175,7 +178,7 @@ fun HistoryWalkI(
             SignUpScreen(
                 viewModel = viewModel,
                 onSignUpSuccess = {
-                    navController.navigate("intro") {
+                    navController.navigate("logIn") {
                         popUpTo("signUp") { inclusive = true }
                     }
                 },
@@ -187,5 +190,39 @@ fun HistoryWalkI(
             )
         }
 
+        composable("TFA") {
+            TfaScreen(
+                viewModel = viewModel,
+                onTwoFactorSuccess = {
+                    navController.navigate("intro") {
+                        popUpTo("TFA") { inclusive = true }
+                    }
+                }
+            )
+        }
+    }
+
+    LaunchedEffect(stateOfFirebaseUser, stateOfTfaVerified) {
+        if (stateOfFirebaseUser == null) {
+            if (navController.currentDestination?.route != "logIn") {
+                navController.navigate("logIn") {
+                    popUpTo("logIn") { inclusive = true }
+                }
+            }
+        } else {
+            if (!stateOfTfaVerified) {
+                if (navController.currentDestination?.route != "TFA") {
+                    navController.navigate("TFA") {
+                        popUpTo("logIn") { inclusive = true }
+                    }
+                }
+            } else {
+                if (navController.currentDestination?.route !in listOf("intro", "home", "episodes", "episode/{episodeId}", "settings")) {
+                    navController.navigate("intro") {
+                        popUpTo("logIn") { inclusive = true }
+                    }
+                }
+            }
+        }
     }
 }
