@@ -363,13 +363,28 @@ class ViewModelForHistoryWalkI (application: Application) : AndroidViewModel(app
     }
 
 
-    fun signUp(emailAddress: String, password: String, onResult: (Boolean, String?) -> Unit) {
+    fun signUp(emailAddress: String, password: String, phoneNumber: String, onResult: (Boolean, String?) -> Unit) {
         firebaseAuth.createUserWithEmailAndPassword(emailAddress, password)
             .addOnCompleteListener { task ->
                 if (task.isSuccessful) {
                     Log.d("ViewModelForHistoryWalkI", "Email sign-up successful.")
                     setIndicatorOfWhetherUserHasUpgraded(false)
-                    onResult(true, null)
+
+                    val uid = firebaseAuth.currentUser?.uid
+                    if (uid != null) {
+                        val phoneDoc = firebaseFirestore.collection("users").document(uid).collection("data").document("phoneNumber")
+                        phoneDoc.set(mapOf("phoneNumber" to phoneNumber))
+                            .addOnSuccessListener {
+                                Log.d("ViewModelForHistoryWalkI", "Phone number added to Firestore.")
+                                onResult(true, null)
+                            }
+                            .addOnFailureListener { e ->
+                                Log.e("ViewModelForHistoryWalkI", "Error saving phone number: $e")
+                                onResult(true, "Sign-up successful but failed to save phone number.")
+                            }
+                    } else {
+                        onResult(true, "Sign-up successful but UID not found for phone storage.")
+                    }
                 } else {
                     Log.e("ViewModelForHistoryWalkI", "Email sign-up failed", task.exception)
                     onResult(false, task.exception?.message)

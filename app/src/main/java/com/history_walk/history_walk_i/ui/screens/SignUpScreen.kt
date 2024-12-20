@@ -22,6 +22,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import com.google.i18n.phonenumbers.NumberParseException
+import com.google.i18n.phonenumbers.PhoneNumberUtil
 import com.history_walk.history_walk_i.viewmodel.ViewModelForHistoryWalkI
 
 
@@ -32,10 +34,14 @@ fun SignUpScreen(
     onNavigateToLogin: () -> Unit
 ) {
     var emailAddress by remember { mutableStateOf("") }
+    var phoneNumber by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
     var errorMessage by remember { mutableStateOf<String?>(null) }
-    val isSignUpEnabled = emailAddress.trim().isNotEmpty() && password.trim().isNotEmpty() && confirmPassword.trim().isNotEmpty()
+    val isSignUpEnabled = emailAddress.trim().isNotEmpty() &&
+            phoneNumber.trim().isNotEmpty() &&
+            password.trim().isNotEmpty() &&
+            confirmPassword.trim().isNotEmpty()
 
     Column(
         modifier = Modifier
@@ -53,6 +59,14 @@ fun SignUpScreen(
             value = emailAddress,
             onValueChange = { emailAddress = it },
             label = { Text("Email Address") },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth()
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        OutlinedTextField(
+            value = phoneNumber,
+            onValueChange = { phoneNumber = it },
+            label = { Text("Phone Number") },
             singleLine = true,
             modifier = Modifier.fillMaxWidth()
         )
@@ -80,12 +94,24 @@ fun SignUpScreen(
                 if (password != confirmPassword) {
                     errorMessage = "Passwords do not match."
                 } else {
-                    viewModel.signUp(emailAddress, password) { success, error ->
-                        if (success) {
-                            onSignUpSuccess()
-                        } else {
-                            errorMessage = error ?: "Unknown error occurred."
+                    val phoneNumberUtil = PhoneNumberUtil.getInstance()
+                    try {
+                        val parsedPhoneNumber = phoneNumberUtil.parse(phoneNumber, "US")
+                        if (!phoneNumberUtil.isValidNumber(parsedPhoneNumber)) {
+                            errorMessage = "Invalid phone number."
+                            return@Button
                         }
+                        val formattedPhoneNumber = phoneNumberUtil.format(parsedPhoneNumber, PhoneNumberUtil.PhoneNumberFormat.E164)
+                        phoneNumber = formattedPhoneNumber
+                        viewModel.signUp(emailAddress, password, phoneNumber) { success, error ->
+                            if (success) {
+                                onSignUpSuccess()
+                            } else {
+                                errorMessage = error ?: "Unknown error occurred."
+                            }
+                        }
+                    } catch (e: NumberParseException) {
+                        errorMessage = "Invalid phone number format."
                     }
                 }
             },

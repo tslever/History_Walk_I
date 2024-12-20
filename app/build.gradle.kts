@@ -11,13 +11,16 @@ android {
 
     defaultConfig {
         applicationId = "com.history_walk.history_walk_i"
-        minSdk = 24
-        targetSdk = 34
+        minSdk = 34
+        targetSdk = 35
         versionCode = 6
         versionName = "1.0.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         multiDexEnabled = true
+        signingConfig = signingConfigs.getByName("debug")
+        testFunctionalTest = true
+        testHandleProfiling = true
     }
 
     buildTypes {
@@ -27,18 +30,30 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            signingConfig = signingConfigs.getByName("debug")
+            multiDexEnabled = true
+        }
+        getByName("debug") {
+            signingConfig = signingConfigs.getByName("debug")
+            multiDexEnabled = true
         }
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
     kotlinOptions {
-        jvmTarget = "11"
+        jvmTarget = "17"
     }
     buildFeatures {
         compose = true
+        viewBinding = true
     }
+    dependenciesInfo {
+        includeInApk = true
+        includeInBundle = true
+    }
+    buildToolsVersion = "35.0.0"
 }
 
 dependencies {
@@ -55,10 +70,11 @@ dependencies {
     implementation(libs.androidx.documentfile)
     implementation(libs.billing.ktx)
     implementation(libs.androidx.runtime.livedata)
-    implementation(platform("com.google.firebase:firebase-bom:33.7.0"))
-    implementation("com.google.firebase:firebase-analytics")
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.analytics)
     implementation(libs.firebase.firestore.ktx)
     implementation(libs.firebase.auth.ktx)
+    implementation(libs.libphonenumber.v81352)
     // https://firebase.google.com/docs/android/setup#available-libraries
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
