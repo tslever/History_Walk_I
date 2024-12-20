@@ -1,5 +1,6 @@
 package com.history_walk.history_walk_i
 
+import android.app.Activity
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -13,6 +14,7 @@ import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -47,12 +49,19 @@ class MainActivity : ComponentActivity() {
 fun HistoryWalkI(
     viewModel: ViewModelForHistoryWalkI = viewModel()
 ) {
+    val activity = LocalContext.current as Activity
     var message by remember { mutableStateOf("") }
     val navController = rememberNavController()
     var showDialog by remember { mutableStateOf(false) }
     val stateOfNotification by viewModel.notification.observeAsState()
     val stateOfFirebaseUser by viewModel.firebaseUser.observeAsState()
-    val stateOfTfaVerified by viewModel.tfaHasOccurred.observeAsState(false)
+    val stateOfTfaVerified by viewModel.tfaVerified.observeAsState(false)
+
+
+    LaunchedEffect(Unit) {
+        viewModel.setCurrentActivity(activity)
+    }
+
 
     LaunchedEffect(stateOfNotification) {
         stateOfNotification?.let { theMessage ->
@@ -158,7 +167,8 @@ fun HistoryWalkI(
                 },
                 onNavigateToSignUp = {
                     navController.navigate("signUp")
-                }
+                },
+                activity = activity
             )
         }
 

@@ -8,19 +8,24 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
-import com.google.api.Billing
+import com.google.firebase.FirebaseException
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
+import com.google.firebase.auth.PhoneAuthCredential
+import com.google.firebase.auth.PhoneAuthOptions
+import com.google.firebase.auth.PhoneAuthProvider
 import com.google.firebase.firestore.FirebaseFirestore
 import com.history_walk.history_walk_i.billing.BillingRepository
 import kotlinx.coroutines.launch
+import java.lang.ref.WeakReference
+import java.util.concurrent.TimeUnit
 
 
 class ViewModelForHistoryWalkI (application: Application) : AndroidViewModel(application), BillingRepository.BillingListener {
 
     private var billingRepository: BillingRepository? = null
 
-    private var codeForTfa: String? = null
+    private var currentActivityRef: WeakReference<Activity>? = null
 
     private val firebaseAuth: FirebaseAuth = FirebaseAuth.getInstance()
     private val firebaseFirestore = FirebaseFirestore.getInstance()
@@ -40,8 +45,8 @@ class ViewModelForHistoryWalkI (application: Application) : AndroidViewModel(app
         "Funeral Progress"
     )
 
-    private val mutableLiveDataOfFirebaseUser = MutableLiveData<FirebaseUser?>()
-    val firebaseUser: LiveData<FirebaseUser?> get() = mutableLiveDataOfFirebaseUser
+    private val mutableLiveDataOfFirebaseUser = MutableLiveData(firebaseAuth.currentUser)
+    val firebaseUser: LiveData<*> get() = mutableLiveDataOfFirebaseUser
 
     private val mutableLiveDataOfIndexOfPresentEpisode = MutableLiveData<Int>()
     val indexOfPresentEpisode: LiveData<Int> get() = mutableLiveDataOfIndexOfPresentEpisode
@@ -53,34 +58,43 @@ class ViewModelForHistoryWalkI (application: Application) : AndroidViewModel(app
     val notification: LiveData<String?> get() = mutableLiveDataOfNotification
 
     private val mutableLiveDataOfIndicatorThatCodeForTfaWasSent = MutableLiveData(false)
-    val indicatorThatCodeForTfaWasSent: LiveData<Boolean> get() = mutableLiveDataOfIndicatorThatCodeForTfaWasSent
 
-    private val mutableLiveDataOfIndicatorOfWhetherTfaHasOccurred = MutableLiveData(false)
-    val tfaHasOccurred: LiveData<Boolean> get() = mutableLiveDataOfIndicatorOfWhetherTfaHasOccurred
+    private val mutableLiveDataOfIndicatorOfTfaVerified = MutableLiveData(false)
+    val tfaVerified: LiveData<Boolean> get() = mutableLiveDataOfIndicatorOfTfaVerified
 
     private val sharedPref = application.getSharedPreferences("appPreferences", Context.MODE_PRIVATE)
 
+    private var phoneNumberOfUser: String? = null
+
+    private var verificationId: String? = null
+
 
     init {
-        mutableLiveDataOfFirebaseUser.value = firebaseAuth.currentUser
         firebaseAuth.addAuthStateListener { theFirebaseAuth ->
             val currentUser = theFirebaseAuth.currentUser
             mutableLiveDataOfFirebaseUser.value = currentUser
             if (currentUser != null) {
                 val tfaWasPreviouslyVerified = sharedPref.getBoolean("tfaVerifiedForUser_${currentUser.uid}", false)
-                mutableLiveDataOfIndicatorOfWhetherTfaHasOccurred.value = tfaWasPreviouslyVerified
+                mutableLiveDataOfIndicatorOfTfaVerified.value = tfaWasPreviouslyVerified
 
                 billingRepository?.endConnection()
-                billingRepository = BillingRepository(application.applicationContext, currentUser.uid)
+                billingRepository = BillingRepository(getApplication(), currentUser.uid)
                 billingRepository?.setBillingListener(this)
                 billingRepository?.startBillingConnection()
-                fetchIndexOfPresentEpisode()
                 fetchIndicatorOfWhetherUserHasUpgraded()
+                fetchIndexOfPresentEpisode()
+
+                fetchPhoneNumberOfUser {
+                    val tfaVerified = mutableLiveDataOfIndicatorOfTfaVerified.value ?: false
+                    if (!tfaVerified) {
+                        sendCodeForTfaIfAvailable()
+                    }
+                }
             } else {
                 billingRepository?.endConnection()
                 billingRepository = null
                 mutableLiveDataOfIndicatorOfWhetherUserHasUpgraded.postValue(false)
-                mutableLiveDataOfIndicatorOfWhetherTfaHasOccurred.value = false
+                mutableLiveDataOfIndicatorOfTfaVerified.value = false
             }
         }
     }
@@ -143,6 +157,30 @@ class ViewModelForHistoryWalkI (application: Application) : AndroidViewModel(app
             .addOnFailureListener { e ->
                 Log.e("ViewModelForHistoryWalkI", "Error fetching premium status: $e")
                 mutableLiveDataOfIndicatorOfWhetherUserHasUpgraded.postValue(false)
+            }
+    }
+
+
+    private fun fetchPhoneNumberOfUser(onComplete: () -> Unit) {
+        val uid = firebaseAuth.currentUser?.uid ?: run {
+            Log.w("ViewModelForHistoryWalkI", "No user is logged in to fetch phone number.")
+            onComplete()
+            return
+        }
+        firebaseFirestore.collection("users").document(uid).collection("data").document("phoneNumber")
+            .get()
+            .addOnSuccessListener { document ->
+                if (document != null && document.exists()) {
+                    phoneNumberOfUser = document.getString("phoneNumber")
+                    Log.d("ViewModelForHistoryWalkI", "Phone number fetched: $phoneNumberOfUser")
+                } else {
+                    Log.w("ViewModelForHistoryWalkI", "No phone number found for user.")
+                }
+                onComplete()
+            }
+            .addOnFailureListener { e ->
+                Log.e("ViewModelForHistoryWalkI", "Error fetching phone number: $e")
+                onComplete()
             }
     }
 
@@ -211,13 +249,55 @@ class ViewModelForHistoryWalkI (application: Application) : AndroidViewModel(app
     }
 
 
-    fun sendCodeForTfa() {
-        // In a real app, you'd send the code via SMS or similar.
-        // Here, we'll just generate it and log it.
-        val theCodeForTfa = (100_000..999_999).random().toString()
-        codeForTfa = theCodeForTfa
-        Log.d("ViewModelForHistoryWalkI", "Code for TFA: $codeForTfa (Simulated sending to user's phone")
-        mutableLiveDataOfIndicatorThatCodeForTfaWasSent.value = true
+    fun sendCodeForTfaIfAvailable() {
+        val phoneNumber = phoneNumberOfUser
+        if (phoneNumber.isNullOrEmpty()) {
+            Log.e("ViewModelForHistoryWalkI", "User phone number not available.")
+            mutableLiveDataOfNotification.value = "User phone number not available."
+            return
+        }
+
+        val currentActivity = currentActivityRef?.get()
+        if (currentActivity == null) {
+            Log.e("ViewModelForHistoryWalkI", "Activity context not available for TFA.")
+            mutableLiveDataOfNotification.value = "Activity context not available for TFA."
+            return
+        }
+
+        val options = PhoneAuthOptions
+            .newBuilder(firebaseAuth)
+            .setPhoneNumber(phoneNumber)
+            .setTimeout(60L, TimeUnit.SECONDS)
+            .setActivity(currentActivity)
+            .setCallbacks(object : PhoneAuthProvider.OnVerificationStateChangedCallbacks() {
+                override fun onVerificationCompleted(credential: PhoneAuthCredential) {
+                    firebaseAuth.signInWithCredential(credential).addOnCompleteListener { task ->
+                        if (task.isSuccessful) {
+                            onTwoFactorVerified()
+                        } else {
+                            mutableLiveDataOfNotification.value = "Auto-verification failed."
+                        }
+                    }
+                }
+
+                override fun onVerificationFailed(e: FirebaseException) {
+                    Log.e("ViewModelForHistoryWalkI", "Verification failed: $e")
+                    mutableLiveDataOfNotification.value = "Verification failed: ${e.message}"
+                }
+
+                override fun onCodeSent(vid: String, token: PhoneAuthProvider.ForceResendingToken) {
+                    verificationId = vid
+                    Log.d("ViewModelForHistoryWalkI", "Code sent to $phoneNumber")
+                }
+            })
+            .build()
+
+        PhoneAuthProvider.verifyPhoneNumber(options)
+    }
+
+
+    fun setCurrentActivity(activity: Activity) {
+        currentActivityRef = WeakReference(activity)
     }
 
 
@@ -254,17 +334,16 @@ class ViewModelForHistoryWalkI (application: Application) : AndroidViewModel(app
     }
 
 
-    fun signIn(emailAddress: String, password: String, onResult: (Boolean, String?) -> Unit) {
+    fun signIn(emailAddress: String, password: String, activity: Activity, onResult: (Boolean, String?) -> Unit) {
         firebaseAuth.signInWithEmailAndPassword(emailAddress, password)
             .addOnCompleteListener { task ->
                 if (task.isSuccessful) {
                     Log.d("ViewModelForHistoryWalkI", "Email sign-in successful.")
-                    mutableLiveDataOfIndicatorOfWhetherTfaHasOccurred.value = false
+                    mutableLiveDataOfIndicatorOfTfaVerified.value = false
                     val uid = firebaseAuth.currentUser?.uid
                     if (uid != null) {
                         sharedPref.edit().putBoolean("tfaVerifiedForUser_$uid", false).apply()
                     }
-                    sendCodeForTfa()
                     onResult(true, null)
                 } else {
                     Log.e("ViewModelForHistoryWalkI", "Email sign-in failed.", task.exception)
@@ -276,7 +355,7 @@ class ViewModelForHistoryWalkI (application: Application) : AndroidViewModel(app
 
     fun signOut() {
         firebaseAuth.signOut()
-        mutableLiveDataOfIndicatorOfWhetherTfaHasOccurred.value = false
+        mutableLiveDataOfIndicatorOfTfaVerified.value = false
         val uid = firebaseAuth.currentUser?.uid
         if (uid != null) {
             sharedPref.edit().putBoolean("tfaVerifiedForUser_$uid", false).apply()
@@ -300,15 +379,30 @@ class ViewModelForHistoryWalkI (application: Application) : AndroidViewModel(app
 
 
     fun verifyCodeForTfa(codeEntered: String, onResult: (Boolean) -> Unit) {
-        if (codeEntered == codeForTfa) {
-            mutableLiveDataOfIndicatorOfWhetherTfaHasOccurred.value = true
-            val uid = firebaseAuth.currentUser?.uid
-            if (uid != null) {
-                sharedPref.edit().putBoolean("tfaVerifiedForUser_$uid", true).apply()
-            }
-            onResult(true)
-        } else {
+        val vid = verificationId
+        if (vid == null) {
+            Log.e("ViewModelForHistoryWalkI", "No verificationId stored. Cannot verify code.")
             onResult(false)
+            return
+        }
+
+        val credential = PhoneAuthProvider.getCredential(vid, codeEntered)
+        firebaseAuth.signInWithCredential(credential).addOnCompleteListener { task ->
+            if (task.isSuccessful) {
+                onTwoFactorVerified()
+                onResult(true)
+            } else {
+                Log.e("ViewModelForHistoryWalkI", "Verification failed: ${task.exception}")
+                onResult(false)
+            }
+        }
+    }
+
+    private fun onTwoFactorVerified() {
+        mutableLiveDataOfIndicatorOfTfaVerified.value = true
+        val uid = firebaseAuth.currentUser?.uid
+        if (uid != null) {
+            sharedPref.edit().putBoolean("tfaVerifiedForUser_$uid", true).apply()
         }
     }
 }

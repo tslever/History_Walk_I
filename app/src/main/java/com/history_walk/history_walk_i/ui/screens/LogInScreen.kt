@@ -1,5 +1,6 @@
 package com.history_walk.history_walk_i.ui.screens
 
+import android.app.Activity
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -29,7 +30,8 @@ import com.history_walk.history_walk_i.viewmodel.ViewModelForHistoryWalkI
 fun LogInScreen(
     viewModelForHistoryWalkI: ViewModelForHistoryWalkI,
     onLogInSuccess: () -> Unit,
-    onNavigateToSignUp: () -> Unit
+    onNavigateToSignUp: () -> Unit,
+    activity: Activity
 ) {
     var emailAddress by remember { mutableStateOf("") }
     var errorMessage by remember { mutableStateOf<String?>(null) }
@@ -64,7 +66,7 @@ fun LogInScreen(
         Spacer(modifier = Modifier.height(16.dp))
         Button(
             onClick = {
-                viewModelForHistoryWalkI.signIn(emailAddress, password) { success, error ->
+                viewModelForHistoryWalkI.signIn(emailAddress, password, activity) { success, error ->
                     if (success) {
                         onLogInSuccess()
                     } else {
