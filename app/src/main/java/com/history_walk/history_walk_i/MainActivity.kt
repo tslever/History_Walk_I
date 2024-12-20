@@ -188,7 +188,7 @@ fun HistoryWalkI(
             SignUpScreen(
                 viewModel = viewModel,
                 onSignUpSuccess = {
-                    navController.navigate("logIn") {
+                    navController.navigate("TFA") {
                         popUpTo("signUp") { inclusive = true }
                     }
                 },
