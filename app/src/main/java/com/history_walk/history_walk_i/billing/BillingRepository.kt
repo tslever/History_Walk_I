@@ -79,6 +79,53 @@ class BillingRepository(
     }
 
 
+    private fun associatePurchaseWithUser(purchaseToken: String) {
+        val userDataDoc = firestore.collection("users").document(usersUid).collection("data").document("userData")
+        userDataDoc.update(
+            mapOf(
+                "isPremium" to true,
+                "purchaseToken" to purchaseToken
+            )
+        )
+            .addOnSuccessListener {
+                Log.d(TAG, "Premium status updated in Firestore for user $usersUid")
+                billingListener?.onPurchaseSuccess()
+            }
+            .addOnFailureListener { e ->
+                Log.e(TAG, "Error updating premium status: $e")
+                billingListener?.onNotifyUser("Error updating premium status: $e")
+            }
+    }
+
+
+    // Function checkExistingPurchases checks existing purchases to restore premium status.
+    private fun checkExistingPurchases() {
+        val userDataDoc = firestore.collection("users").document(usersUid).collection("data").document("userData")
+        userDataDoc.get()
+            .addOnSuccessListener { document ->
+                if (document != null && document.exists()) {
+                    val isPremium = document.getBoolean("isPremium") ?: false
+                    if (isPremium) {
+                        billingListener?.onPurchaseSuccess()
+                    } else {
+                        Log.i(TAG, "User does not have premium status")
+                    }
+                } else {
+                    Log.i(TAG, "User data document does not exist.")
+                }
+            }
+            .addOnFailureListener { e ->
+                Log.e(TAG, "Error fetching user data: $e")
+                billingListener?.onNotifyUser("Error fetching user data: $e")
+            }
+    }
+
+
+    fun clearBillingListener() {
+        billingListener = null
+    }
+
+
     private fun consumePurchase(purchase: Purchase) {
         val consumeParams = ConsumeParams
             .newBuilder()
@@ -95,45 +142,8 @@ class BillingRepository(
     }
 
 
-    private fun associatePurchaseWithUser(purchaseToken: String) {
-        val premiumDoc = firestore.collection("users").document(usersUid).collection("data").document("premiumStatus")
-        premiumDoc.set(mapOf("isPremium" to true, "purchaseToken" to purchaseToken))
-            .addOnSuccessListener {
-                Log.d(TAG, "Premium status updated in Firestore for user $usersUid")
-                billingListener?.onPurchaseSuccess()
-            }
-            .addOnFailureListener { e ->
-                Log.e(TAG, "Error updating premium status: $e")
-                billingListener?.onNotifyUser("Error updating premium status: $e")
-            }
-    }
-
-
-    // Function checkExistingPurchases checks existing purchases to restore premium status.
-    private fun checkExistingPurchases() {
-        val premiumDoc = firestore.collection("users").document(usersUid).collection("data").document("premiumStatus")
-        premiumDoc.get()
-            .addOnSuccessListener { document ->
-                if (document != null && document.exists()) {
-                    val isPremium = document.getBoolean("isPremium") ?: false
-                    if (isPremium) {
-                        billingListener?.onPurchaseSuccess()
-                    } else {
-                        Log.i(TAG, "User does not have premium status")
-                    }
-                } else {
-                    Log.i(TAG, "Premium status document does not exist.")
-                }
-            }
-            .addOnFailureListener { e ->
-                Log.e(TAG, "Error fetching premium status: $e")
-                billingListener?.onNotifyUser("Error fetching premium status: $e")
-            }
-    }
-
-
-    fun clearBillingListener() {
-        billingListener = null
+    fun dispose() {
+        endConnection()
     }
 
 
@@ -403,8 +413,8 @@ class BillingRepository(
 
     private suspend fun associatePurchaseIfNeeded(purchase: Purchase) {
         withContext(Dispatchers.IO) {
-            val premiumDoc = firestore.collection("users").document(usersUid).collection("data").document("premiumStatus")
-            premiumDoc.get().addOnSuccessListener { document ->
+            val userDataDoc = firestore.collection("users").document(usersUid).collection("data").document("userData")
+            userDataDoc.get().addOnSuccessListener { document ->
                 val isPremium = document.getBoolean("isPremium") ?: false
                 if (!isPremium) {
                     acknowledgePurchase(purchase)
@@ -412,7 +422,7 @@ class BillingRepository(
                     Log.i(TAG, "User already has premium status.")
                 }
             }.addOnFailureListener { e ->
-                Log.e(TAG, "Error fetching premium status: $e")
+                Log.e(TAG, "Error fetching user data: $e")
                 billingListener?.onNotifyUser("Error restoring purchases: $e")
             }
         }
@@ -442,10 +452,5 @@ class BillingRepository(
                 }
             }
         }
-    }
-
-
-    fun dispose() {
-        endConnection()
     }
 }

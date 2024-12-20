@@ -45,8 +45,8 @@ class ViewModelForHistoryWalkI (application: Application) : AndroidViewModel(app
         "Funeral Progress"
     )
 
-    private val mutableLiveDataOfFirebaseUser = MutableLiveData(firebaseAuth.currentUser)
-    val firebaseUser: LiveData<*> get() = mutableLiveDataOfFirebaseUser
+    private val mutableLiveDataOfFirebaseUser = MutableLiveData<FirebaseUser?>(firebaseAuth.currentUser)
+    val firebaseUser: LiveData<FirebaseUser?> get() = mutableLiveDataOfFirebaseUser
 
     private val mutableLiveDataOfIndexOfPresentEpisode = MutableLiveData<Int>()
     val indexOfPresentEpisode: LiveData<Int> get() = mutableLiveDataOfIndexOfPresentEpisode
@@ -56,8 +56,6 @@ class ViewModelForHistoryWalkI (application: Application) : AndroidViewModel(app
 
     private val mutableLiveDataOfNotification = MutableLiveData<String?>()
     val notification: LiveData<String?> get() = mutableLiveDataOfNotification
-
-    private val mutableLiveDataOfIndicatorThatCodeForTfaWasSent = MutableLiveData(false)
 
     private val mutableLiveDataOfIndicatorOfTfaVerified = MutableLiveData(false)
     val tfaVerified: LiveData<Boolean> get() = mutableLiveDataOfIndicatorOfTfaVerified
@@ -112,15 +110,15 @@ class ViewModelForHistoryWalkI (application: Application) : AndroidViewModel(app
             mutableLiveDataOfIndexOfPresentEpisode.postValue(1)
             return
         }
-        val userEpisodeDoc = firebaseFirestore.collection("users").document(uid).collection("data").document("episodeIndex")
-        userEpisodeDoc.get()
+        val userDataDoc = firebaseFirestore.collection("users").document(uid).collection("data").document("userData")
+        userDataDoc.get()
             .addOnSuccessListener { document ->
                 if (document != null && document.exists()) {
                     val index = document.getLong("currentIndex")?.toInt() ?: 1
                     mutableLiveDataOfIndexOfPresentEpisode.postValue(index)
                 } else {
                     mutableLiveDataOfIndexOfPresentEpisode.postValue(1)
-                    userEpisodeDoc.set(mapOf("currentIndex" to 1))
+                    userDataDoc.set(mapOf("currentIndex" to 1))
                         .addOnFailureListener { e ->
                             Log.e("ViewModelForHistoryWalkI", "Error initializing index: $e")
                         }
@@ -140,22 +138,22 @@ class ViewModelForHistoryWalkI (application: Application) : AndroidViewModel(app
             mutableLiveDataOfIndicatorOfWhetherUserHasUpgraded.postValue(false)
             return
         }
-        val premiumDoc = firebaseFirestore.collection("users").document(uid).collection("data").document("premiumStatus")
-        premiumDoc.get()
+        val userDataDoc = firebaseFirestore.collection("users").document(uid).collection("data").document("userData")
+        userDataDoc.get()
             .addOnSuccessListener { document ->
                 if (document != null && document.exists()) {
                     val premium = document.getBoolean("isPremium") ?: false
                     mutableLiveDataOfIndicatorOfWhetherUserHasUpgraded.postValue(premium)
                 } else {
                     mutableLiveDataOfIndicatorOfWhetherUserHasUpgraded.postValue(false)
-                    premiumDoc.set(mapOf("isPremium" to false))
+                    userDataDoc.set(mapOf("isPremium" to false))
                         .addOnFailureListener { e ->
                             Log.e("ViewModelForHistoryWalkI", "Error initializing premium status: $e")
                         }
                 }
             }
             .addOnFailureListener { e ->
-                Log.e("ViewModelForHistoryWalkI", "Error fetching premium status: $e")
+                Log.e("ViewModelForHistoryWalkI", "Error fetching user data: $e")
                 mutableLiveDataOfIndicatorOfWhetherUserHasUpgraded.postValue(false)
             }
     }
@@ -167,7 +165,7 @@ class ViewModelForHistoryWalkI (application: Application) : AndroidViewModel(app
             onComplete()
             return
         }
-        firebaseFirestore.collection("users").document(uid).collection("data").document("phoneNumber")
+        firebaseFirestore.collection("users").document(uid).collection("data").document("userData")
             .get()
             .addOnSuccessListener { document ->
                 if (document != null && document.exists()) {
@@ -205,8 +203,8 @@ class ViewModelForHistoryWalkI (application: Application) : AndroidViewModel(app
             Log.e("ViewModelForHistoryWalkI", "User is not authenticated.")
             return
         }
-        val userEpisodeDoc = firebaseFirestore.collection("users").document(uid).collection("data").document("episodeIndex")
-        userEpisodeDoc.set(mapOf("currentIndex" to newIndex))
+        val userDataDoc = firebaseFirestore.collection("users").document(uid).collection("data").document("userData")
+        userDataDoc.update(mapOf("currentIndex" to newIndex))
             .addOnSuccessListener {
                 Log.d("ViewModelForHistoryWalkI", "Index updated to $newIndex")
             }
@@ -271,12 +269,17 @@ class ViewModelForHistoryWalkI (application: Application) : AndroidViewModel(app
             .setActivity(currentActivity)
             .setCallbacks(object : PhoneAuthProvider.OnVerificationStateChangedCallbacks() {
                 override fun onVerificationCompleted(credential: PhoneAuthCredential) {
-                    firebaseAuth.signInWithCredential(credential).addOnCompleteListener { task ->
-                        if (task.isSuccessful) {
-                            onTwoFactorVerified()
-                        } else {
-                            mutableLiveDataOfNotification.value = "Auto-verification failed."
+                    val currentUser = firebaseAuth.currentUser
+                    if (currentUser != null) {
+                        currentUser.linkWithCredential(credential).addOnCompleteListener { task ->
+                            if (task.isSuccessful) {
+                                onTwoFactorVerified()
+                            } else {
+                                mutableLiveDataOfNotification.value = "Auto-verification failed: ${task.exception?.message}"
+                            }
                         }
+                    } else {
+                        mutableLiveDataOfNotification.value = "No user is signed in to link phone number."
                     }
                 }
 
@@ -314,8 +317,8 @@ class ViewModelForHistoryWalkI (application: Application) : AndroidViewModel(app
             Log.e("ViewModelForHistoryWalkI", "User is not authenticated")
             return
         }
-        val premiumDoc = firebaseFirestore.collection("users").document(uid).collection("data").document("premiumStatus")
-        premiumDoc.set(mapOf("isPremium" to status))
+        val userDataDoc = firebaseFirestore.collection("users").document(uid).collection("data").document("userData")
+        userDataDoc.update("isPremium", status)
             .addOnSuccessListener {
                 mutableLiveDataOfIndicatorOfWhetherUserHasUpgraded.postValue(status)
                 Log.d("ViewModelForHistoryWalkI", "Premium status set to $status")
@@ -368,25 +371,28 @@ class ViewModelForHistoryWalkI (application: Application) : AndroidViewModel(app
             .addOnCompleteListener { task ->
                 if (task.isSuccessful) {
                     Log.d("ViewModelForHistoryWalkI", "Email sign-up successful.")
-                    setIndicatorOfWhetherUserHasUpgraded(false)
-
                     val uid = firebaseAuth.currentUser?.uid
                     if (uid != null) {
-                        val phoneDoc = firebaseFirestore.collection("users").document(uid).collection("data").document("phoneNumber")
-                        phoneDoc.set(mapOf("phoneNumber" to phoneNumber))
+                        val userDataDoc = firebaseFirestore.collection("users").document(uid).collection("data").document("userData")
+                        userDataDoc.set(
+                            mapOf(
+                                "isPremium" to false,
+                                "phoneNumber" to phoneNumber
+                            )
+                        )
                             .addOnSuccessListener {
-                                Log.d("ViewModelForHistoryWalkI", "Phone number added to Firestore.")
+                                Log.d("ViewModelForHistoryWalkI", "User data added to Firestore.")
                                 onResult(true, null)
                             }
                             .addOnFailureListener { e ->
-                                Log.e("ViewModelForHistoryWalkI", "Error saving phone number: $e")
-                                onResult(true, "Sign-up successful but failed to save phone number.")
+                                Log.e("ViewModelForHistoryWalkI", "Error saving user data: $e")
+                                onResult(true, "Sign-up successful but failed to save user data.")
                             }
                     } else {
-                        onResult(true, "Sign-up successful but UID not found for phone storage.")
+                        onResult(true, "Sign-up successful but UID not found for data storage.")
                     }
                 } else {
-                    Log.e("ViewModelForHistoryWalkI", "Email sign-up failed", task.exception)
+                    Log.e("ViewModelForHistoryWalkI", "Email sign-up failed.", task.exception)
                     onResult(false, task.exception?.message)
                 }
             }
@@ -402,15 +408,24 @@ class ViewModelForHistoryWalkI (application: Application) : AndroidViewModel(app
         }
 
         val credential = PhoneAuthProvider.getCredential(vid, codeEntered)
-        firebaseAuth.signInWithCredential(credential).addOnCompleteListener { task ->
-            if (task.isSuccessful) {
-                onTwoFactorVerified()
-                onResult(true)
-            } else {
-                Log.e("ViewModelForHistoryWalkI", "Verification failed: ${task.exception}")
-                onResult(false)
-            }
+        val currentUser = firebaseAuth.currentUser
+        if (currentUser == null) {
+            Log.e("ViewModelForHistoryWalkI", "No user is currently signed in.")
+            onResult(false)
+            return
         }
+        currentUser
+            .linkWithCredential(credential)
+            .addOnCompleteListener { task ->
+                if (task.isSuccessful) {
+                    onTwoFactorVerified()
+                    onResult(true)
+                } else {
+                    Log.e("ViewModelForHistoryWalkI", "TFA linking failed: ${task.exception}")
+                    mutableLiveDataOfNotification.value = task.exception?.message ?: "TFA linking failed."
+                    onResult(false)
+                }
+            }
     }
 
     private fun onTwoFactorVerified() {
