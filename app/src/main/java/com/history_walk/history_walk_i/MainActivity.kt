@@ -104,7 +104,10 @@ fun HistoryWalkI(
                 EpisodeScreen(
                     episodeId = episodeId,
                     viewModel = viewModel,
-                    onGoToSettings = { navController.navigate("settings") }
+                    onGoToSettings = { navController.navigate("settings") },
+                    onEpisodeCompleted = {
+                        navController.popBackStack("episodes", false)
+                    }
                 )
             }
         }

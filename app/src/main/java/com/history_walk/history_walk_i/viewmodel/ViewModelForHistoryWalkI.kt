@@ -193,11 +193,8 @@ class ViewModelForHistoryWalkI (application: Application) : AndroidViewModel(app
     }
 
 
-    fun incrementEpisodeIndex() {
-        val currentIndex = mutableLiveDataOfIndexOfPresentEpisode.value ?: 1
-        val newIndex = currentIndex + 1
+    fun setCurrentIndex(newIndex: Int) {
         mutableLiveDataOfIndexOfPresentEpisode.value = newIndex
-
         val uid = firebaseAuth.currentUser?.uid
         if (uid == null) {
             Log.e("ViewModelForHistoryWalkI", "User is not authenticated.")
@@ -211,6 +208,13 @@ class ViewModelForHistoryWalkI (application: Application) : AndroidViewModel(app
             .addOnFailureListener { e ->
                 Log.e("ViewModelForHistoryWalkI", "Error updating index: $e")
             }
+    }
+
+
+    fun incrementEpisodeIndex() {
+        val currentIndex = mutableLiveDataOfIndexOfPresentEpisode.value ?: 1
+        val newIndex = currentIndex + 1
+        setCurrentIndex(newIndex)
     }
 
 
@@ -337,7 +341,7 @@ class ViewModelForHistoryWalkI (application: Application) : AndroidViewModel(app
     }
 
 
-    fun signIn(emailAddress: String, password: String, activity: Activity, onResult: (Boolean, String?) -> Unit) {
+    fun signIn(emailAddress: String, password: String, onResult: (Boolean, String?) -> Unit) {
         firebaseAuth.signInWithEmailAndPassword(emailAddress, password)
             .addOnCompleteListener { task ->
                 if (task.isSuccessful) {
@@ -377,11 +381,13 @@ class ViewModelForHistoryWalkI (application: Application) : AndroidViewModel(app
                         userDataDoc.set(
                             mapOf(
                                 "isPremium" to false,
-                                "phoneNumber" to phoneNumber
+                                "phoneNumber" to phoneNumber,
+                                "currentIndex" to 1
                             )
                         )
                             .addOnSuccessListener {
                                 Log.d("ViewModelForHistoryWalkI", "User data added to Firestore.")
+                                mutableLiveDataOfIndexOfPresentEpisode.postValue(1)
                                 onResult(true, null)
                             }
                             .addOnFailureListener { e ->

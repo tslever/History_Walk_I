@@ -66,7 +66,7 @@ fun LogInScreen(
         Spacer(modifier = Modifier.height(16.dp))
         Button(
             onClick = {
-                viewModelForHistoryWalkI.signIn(emailAddress, password, activity) { success, error ->
+                viewModelForHistoryWalkI.signIn(emailAddress, password) { success, error ->
                     if (success) {
                         onLogInSuccess()
                     } else {
