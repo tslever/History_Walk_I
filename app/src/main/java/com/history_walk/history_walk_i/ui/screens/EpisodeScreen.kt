@@ -23,7 +23,12 @@ fun EpisodeScreen(
     onGoToSettings: () -> Unit,
     onEpisodeCompleted: () -> Unit
 ) {
-    val title = viewModel.listOfTitlesOfEpisodes[episodeId - 1]
+    val listSize = viewModel.listOfTitlesOfEpisodes.size
+    val title = if (episodeId in 1..listSize) {
+        viewModel.listOfTitlesOfEpisodes[episodeId - 1]
+    } else {
+        "Unknown Episode"
+    }
 
     Column (
         modifier = Modifier
@@ -33,21 +38,28 @@ fun EpisodeScreen(
     ) {
         Column {
             Text(
-                text = "Episode $episodeId: $title",
+                text = if (episodeId in 1..listSize) "Episode $episodeId: $title" else "Invalid Episode",
                 style = typography.titleLarge
             )
             Spacer(modifier = Modifier.height(16.dp))
         }
-        Button(
-            onClick = {
-                viewModel.incrementEpisodeIndex()
-                onEpisodeCompleted()
-            },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 8.dp)
-        ) {
-            Text(text = "Mark as Completed")
+        if (episodeId in 1..listSize) {
+            Button(
+                onClick = {
+                    viewModel.incrementEpisodeIndex()
+                    onEpisodeCompleted()
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp)
+            ) {
+                Text(text = "Mark as Completed")
+            }
+        } else {
+            Text(
+                text = "This episode does not exist.",
+                style = typography.displayMedium
+            )
         }
     }
 }

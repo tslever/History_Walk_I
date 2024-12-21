@@ -1,5 +1,6 @@
 package com.history_walk.history_walk_i.ui.screens
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -26,10 +27,15 @@ import com.history_walk.history_walk_i.viewmodel.ViewModelForHistoryWalkI
 @Composable
 fun TfaScreen(
     viewModel: ViewModelForHistoryWalkI,
-    onTwoFactorSuccess: () -> Unit
+    onTwoFactorSuccess: () -> Unit,
+    onCancel: () -> Unit
 ) {
     var code by remember { mutableStateOf("") }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+
+    BackHandler {
+        onCancel()
+    }
 
     Column(
         modifier = Modifier

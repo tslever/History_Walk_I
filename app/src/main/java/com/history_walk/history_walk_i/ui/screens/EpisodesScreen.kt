@@ -20,11 +20,16 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults.colors
 import androidx.compose.material3.MaterialTheme.typography
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -38,6 +43,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.history_walk.history_walk_i.R
 import com.history_walk.history_walk_i.viewmodel.ViewModelForHistoryWalkI
+import kotlinx.coroutines.launch
 
 
 data class Episode(
@@ -65,65 +71,83 @@ fun EpisodesScreen(
         )
     }
 
+    val snackbarHostState = remember { SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()
+
     Box {
-        Image(
-            painter = painterResource(id = R.drawable.portrait_of_catherine_of_aragon_by_michel_sittow),
-            contentDescription = "portrait of Catherine of Aragon by Lucas Horenbout",
-            contentScale = ContentScale.Crop,
-            modifier = Modifier
-                .fillMaxSize()
-                .alpha(alpha = 0.5f)
-        )
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(top = 8.dp, start = 8.dp, end = 8.dp, bottom = 21.dp),
-            verticalArrangement = Arrangement.SpaceBetween
-        ) {
+        Scaffold(
+            snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
+        ) { innerPadding ->
+            Image(
+                painter = painterResource(id = R.drawable.portrait_of_catherine_of_aragon_by_michel_sittow),
+                contentDescription = "portrait of Catherine of Aragon by Lucas Horenbout",
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .alpha(alpha = 0.5f)
+            )
             Column(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(top = 8.dp, start = 8.dp, end = 8.dp, bottom = 21.dp)
+                    .padding(innerPadding),
+                verticalArrangement = Arrangement.SpaceBetween
             ) {
-                Text(
-                    text = "Episodes",
-                    style = typography.titleMedium.copy(
-                        shadow = Shadow(
-                            color = Color.Black.copy(alpha = 0.2f),
-                            offset = Offset(0f, 3f),
-                            blurRadius = 4f
-                        )
-                    ),
-                    color = Color(0xFFFFC004), // ARGB
-                )
-                Spacer(modifier = Modifier.height(8.dp))
                 Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier
-                        .clip(
-                            RoundedCornerShape(16.dp)
-                        )
-                        .background(color = Color(0x80D9D9D9)) // ARGB
-                        .border(
-                            width = 1.dp,
-                            color = Color.Black,
-                            shape = RoundedCornerShape(16.dp)
-                        )
-                        .padding(
-                            top = 2.dp,
-                            bottom = 2.dp
-                        )
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    LazyColumn {
-                        items(listOfEpisodes) { episode ->
-                            EpisodeRow(
-                                episode = episode,
-                                onClick = { onEpisodeClick(episode.index) }
+                    Text(
+                        text = "Episodes",
+                        style = typography.titleMedium.copy(
+                            shadow = Shadow(
+                                color = Color.Black.copy(alpha = 0.2f),
+                                offset = Offset(0f, 3f),
+                                blurRadius = 4f
                             )
+                        ),
+                        color = Color(0xFFFFC004), // ARGB
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier
+                            .clip(
+                                RoundedCornerShape(16.dp)
+                            )
+                            .background(color = Color(0x80D9D9D9)) // ARGB
+                            .border(
+                                width = 1.dp,
+                                color = Color.Black,
+                                shape = RoundedCornerShape(16.dp)
+                            )
+                            .padding(
+                                top = 2.dp,
+                                bottom = 2.dp
+                            )
+                    ) {
+                        LazyColumn {
+                            items(listOfEpisodes) { episode ->
+                                EpisodeRow(
+                                    episode = episode,
+                                    onClick = {
+                                        if (episode.index in 1..viewModel.listOfTitlesOfEpisodes.size) {
+                                            onEpisodeClick(episode.index)
+                                        } else {
+                                            coroutineScope.launch {
+                                                snackbarHostState.showSnackbar(
+                                                    message = "Selected episode is invalid."
+                                                )
+                                            }
+                                        }
+                                    }
+                                )
+                            }
                         }
                     }
                 }
+                SettingsButton(onGoToSettings = onGoToSettings)
             }
-            SettingsButton (onGoToSettings = onGoToSettings)
         }
     }
 }

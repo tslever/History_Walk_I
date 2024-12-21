@@ -16,11 +16,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavGraphBuilder
+import androidx.navigation.NavHost
+import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import androidx.navigation.navigation
 import com.history_walk.history_walk_i.ui.screens.EpisodeScreen
 import com.history_walk.history_walk_i.ui.screens.EpisodesScreen
 import com.history_walk.history_walk_i.ui.screens.HomeScreen
@@ -45,6 +49,175 @@ class MainActivity : ComponentActivity() {
 }
 
 
+object NavRoutes {
+    const val AUTH_GRAPH = "auth_graph"
+    const val MAIN_GRAPH = "main_graph"
+
+    const val LOG_IN = "logIn"
+    const val SIGN_UP = "signUp"
+    const val TFA = "TFA"
+
+    const val INTRO = "intro"
+    const val HOME = "home"
+    const val EPISODES = "episodes"
+    const val EPISODE = "episode/{episodeId}"
+    const val SETTINGS = "settings"
+}
+
+
+fun NavGraphBuilder.authGraph(
+    navController: NavHostController,
+    viewModel: ViewModelForHistoryWalkI
+) {
+    navigation(startDestination = NavRoutes.LOG_IN, route = NavRoutes.AUTH_GRAPH) {
+        composable(NavRoutes.LOG_IN) {
+            LogInScreen(
+                viewModelForHistoryWalkI = viewModel,
+                onLogInSuccess = {
+                    navController.navigate(NavRoutes.TFA) {
+                        popUpTo(NavRoutes.AUTH_GRAPH) { inclusive = true }
+                        launchSingleTop
+                    }
+                },
+                onNavigateToSignUp = {
+                    navController.navigate(NavRoutes.SIGN_UP)
+                }
+            )
+        }
+        composable(NavRoutes.SIGN_UP) {
+            SignUpScreen(
+                viewModel = viewModel,
+                onSignUpSuccess = {
+                    navController.navigate(NavRoutes.TFA) {
+                        popUpTo(NavRoutes.AUTH_GRAPH) { inclusive = true }
+                        launchSingleTop
+                    }
+                },
+                onNavigateToLogin = {
+                    navController.popBackStack()
+                }
+            )
+        }
+        composable(NavRoutes.TFA) {
+            TfaScreen(
+                viewModel = viewModel,
+                onTwoFactorSuccess = {
+                    navController.navigate(NavRoutes.INTRO) {
+                        popUpTo(NavRoutes.AUTH_GRAPH) { inclusive = true }
+                        launchSingleTop = true
+                    }
+                },
+                onCancel = {
+                    viewModel.signOut()
+                    navController.navigate(NavRoutes.LOG_IN) {
+                        popUpTo(NavRoutes.AUTH_GRAPH) { inclusive = true }
+                        launchSingleTop = true
+                    }
+                }
+            )
+        }
+    }
+}
+
+
+fun NavGraphBuilder.mainGraph(
+    navController: NavHostController,
+    viewModel: ViewModelForHistoryWalkI
+) {
+    navigation(startDestination = NavRoutes.INTRO, route = NavRoutes.MAIN_GRAPH) {
+        composable(NavRoutes.INTRO) {
+            IntroScreen(
+                onContinue = {
+                    if (!viewModel.hasSeenHome()) {
+                        navController.navigate(NavRoutes.HOME) {
+                            launchSingleTop = true
+                        }
+                    } else {
+                        navController.navigate(NavRoutes.EPISODES) {
+                            launchSingleTop = true
+                        }
+                    }
+                }
+            )
+        }
+        composable(NavRoutes.HOME) {
+            HomeScreen(
+                onGoToEpisodes = {
+                    viewModel.setHasSeenHome()
+                    navController.navigate(NavRoutes.EPISODES) {
+                        launchSingleTop
+                    }
+                },
+                onUpgrade = { activity ->
+                    if (activity != null) {
+                        viewModel.purchasePremium(activity)
+                    }
+                },
+                onGoToSettings = {
+                    navController.navigate(NavRoutes.SETTINGS) {
+                        launchSingleTop = true
+                    }
+                },
+                viewModel = viewModel
+            )
+        }
+        composable(NavRoutes.EPISODES) {
+            EpisodesScreen(
+                onGoToSettings = {
+                    navController.navigate(NavRoutes.SETTINGS) {
+                        launchSingleTop = true
+                    }
+                },
+                viewModel = viewModel,
+                onEpisodeClick = { episodeId ->
+                    navController.navigate("episode/$episodeId") {
+                        launchSingleTop = true
+                    }
+                }
+            )
+        }
+        composable(
+            "episode/{episodeId}",
+            arguments = listOf(
+                navArgument("episodeId") {
+                    type = NavType.IntType
+                }
+            )
+        ) { backStackEntry ->
+            val episodeId = backStackEntry.arguments?.getInt("episodeId")
+            if (episodeId != null && episodeId > 0 && episodeId <= viewModel.listOfTitlesOfEpisodes.size) {
+                EpisodeScreen(
+                    episodeId = episodeId,
+                    viewModel = viewModel,
+                    onGoToSettings = {
+                        navController.navigate(NavRoutes.SETTINGS) {
+                            launchSingleTop = true
+                        }
+                    },
+                    onEpisodeCompleted = {
+                        navController.popBackStack(NavRoutes.EPISODES, false)
+                    }
+                )
+            } else {
+                navController.popBackStack(NavRoutes.EPISODES, false)
+            }
+        }
+        composable(NavRoutes.SETTINGS) {
+            SettingsScreen(
+                viewModel = viewModel,
+                onSignOut = {
+                    viewModel.signOut()
+                    navController.navigate(NavRoutes.AUTH_GRAPH) {
+                        popUpTo(NavRoutes.MAIN_GRAPH) { inclusive = true }
+                        launchSingleTop = true
+                    }
+                }
+            )
+        }
+    }
+}
+
+
 @Composable
 fun HistoryWalkI(
     viewModel: ViewModelForHistoryWalkI = viewModel()
@@ -57,11 +230,9 @@ fun HistoryWalkI(
     val stateOfFirebaseUser by viewModel.firebaseUser.observeAsState()
     val stateOfTfaVerified by viewModel.tfaVerified.observeAsState(false)
 
-
     LaunchedEffect(Unit) {
         viewModel.setCurrentActivity(activity)
     }
-
 
     LaunchedEffect(stateOfNotification) {
         stateOfNotification?.let { theMessage ->
@@ -88,168 +259,36 @@ fun HistoryWalkI(
 
     NavHost(
         navController = navController,
-        startDestination = "logIn"
+        startDestination = if (stateOfFirebaseUser == null) NavRoutes.AUTH_GRAPH else {
+            if (!stateOfTfaVerified) NavRoutes.AUTH_GRAPH else NavRoutes.MAIN_GRAPH
+        }
     ) {
-
-        composable(
-            "episode/{episodeId}",
-            arguments = listOf(
-                navArgument("episodeId") {
-                    type = NavType.IntType
-                }
-            )
-        ) { backStackEntry ->
-            val episodeId = backStackEntry.arguments?.getInt("episodeId")
-            if (episodeId != null) {
-                EpisodeScreen(
-                    episodeId = episodeId,
-                    viewModel = viewModel,
-                    onGoToSettings = {
-                        navController.navigate("settings") {
-                            launchSingleTop = true
-                        } },
-                    onEpisodeCompleted = {
-                        navController.popBackStack("episodes", false)
-                    }
-                )
-            }
-        }
-
-        composable("episodes") {
-            EpisodesScreen(
-                onGoToSettings = {
-                    navController.navigate("settings") {
-                        launchSingleTop = true
-                    }
-                },
-                viewModel = viewModel,
-                onEpisodeClick = { episodeId ->
-                    navController.navigate("episode/$episodeId") {
-                        launchSingleTop = true
-                    }
-                }
-            )
-        }
-
-        composable("home") {
-            HomeScreen(
-                onGoToEpisodes = {
-                    viewModel.setHasSeenHome()
-                    navController.navigate("episodes") {
-                        launchSingleTop = true
-                    }
-                },
-                onUpgrade = { activity ->
-                    if (activity != null) {
-                        viewModel.purchasePremium(activity)
-                    }
-                },
-                onGoToSettings = {
-                    navController.navigate("settings") {
-                        launchSingleTop = true
-                    }
-                },
-                viewModel = viewModel
-            )
-        }
-
-        composable("intro") {
-            IntroScreen(
-                onContinue = {
-                    if (!viewModel.hasSeenHome()) {
-                        navController.navigate("home") {
-                            launchSingleTop = true
-                        }
-                    } else {
-                        navController.navigate("episodes") {
-                            launchSingleTop = true
-                        }
-                    }
-                }
-            )
-        }
-
-        composable("logIn") {
-            LogInScreen(
-                viewModelForHistoryWalkI = viewModel,
-                onLogInSuccess = {
-                    navController.navigate("TFA") {
-                        popUpTo("logIn") { inclusive = true }
-                        launchSingleTop = true
-                    }
-                },
-                onNavigateToSignUp = {
-                    navController.navigate("signUp") {
-                        launchSingleTop = true
-                    }
-                },
-                activity = activity
-            )
-        }
-
-        composable("settings") {
-            SettingsScreen(
-                viewModel = viewModel,
-                onSignOut = {
-                    viewModel.signOut()
-                    navController.navigate("logIn") {
-                        popUpTo("settings") { inclusive = true }
-                        launchSingleTop = true
-                    }
-                }
-            )
-        }
-
-        composable("signUp") {
-            SignUpScreen(
-                viewModel = viewModel,
-                onSignUpSuccess = {
-                    navController.navigate("TFA") {
-                        popUpTo("signUp") { inclusive = true }
-                        launchSingleTop = true
-                    }
-                },
-                onNavigateToLogin = {
-                    navController.navigate("logIn") {
-                        launchSingleTop = true
-                    }
-                }
-            )
-        }
-
-        composable("TFA") {
-            TfaScreen(
-                viewModel = viewModel,
-                onTwoFactorSuccess = {
-                    navController.navigate("intro") {
-                        popUpTo("TFA") { inclusive = true }
-                        launchSingleTop = true
-                    }
-                }
-            )
-        }
+        authGraph(navController, viewModel)
+        mainGraph(navController, viewModel)
     }
 
     LaunchedEffect(stateOfFirebaseUser, stateOfTfaVerified) {
-        if (stateOfFirebaseUser == null) {
-            if (navController.currentDestination?.route != "logIn") {
-                navController.navigate("logIn") {
-                    popUpTo("logIn") { inclusive = false }
-                    launchSingleTop = true
-                }
-            }
-        } else {
-            if (!stateOfTfaVerified) {
-                if (navController.currentDestination?.route != "TFA") {
-                    navController.navigate("TFA") {
-                        popUpTo("logIn") { inclusive = true }
+        when {
+            stateOfFirebaseUser == null -> {
+                if (navController.currentDestination?.route !in listOf(NavRoutes.AUTH_GRAPH, NavRoutes.LOG_IN, NavRoutes.SIGN_UP, NavRoutes.TFA)) {
+                    navController.navigate(NavRoutes.AUTH_GRAPH) {
+                        popUpTo(navController.graph.startDestinationId) { inclusive = true }
                         launchSingleTop = true
                     }
                 }
-            } else {
-                if (navController.currentDestination?.route !in listOf("intro", "home", "episodes", "episode/{episodeId}", "settings")) {
-                    navController.navigate("intro") {
-                        popUpTo("TFA") { inclusive = true }
+            }
+            !stateOfTfaVerified -> {
+                if (navController.currentDestination?.route != NavRoutes.TFA) {
+                    navController.navigate(NavRoutes.TFA) {
+                        popUpTo(NavRoutes.AUTH_GRAPH) { inclusive = true }
+                        launchSingleTop = true
+                    }
+                }
+            }
+            else -> {
+                if (navController.currentDestination?.route !in listOf(NavRoutes.INTRO, NavRoutes.HOME, NavRoutes.EPISODES, "episode/{episodeId}", NavRoutes.SETTINGS)) {
+                    navController.navigate(NavRoutes.MAIN_GRAPH) {
+                        popUpTo(navController.graph.startDestinationId) { inclusive = true }
                         launchSingleTop = true
                     }
                 }
