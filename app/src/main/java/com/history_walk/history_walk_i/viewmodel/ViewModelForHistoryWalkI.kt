@@ -361,11 +361,25 @@ class ViewModelForHistoryWalkI (application: Application) : AndroidViewModel(app
 
 
     fun signOut() {
-        firebaseAuth.signOut()
-        mutableLiveDataOfIndicatorOfTfaVerified.value = false
-        val uid = firebaseAuth.currentUser?.uid
-        if (uid != null) {
-            sharedPref.edit().putBoolean("tfaVerifiedForUser_$uid", false).apply()
+        val currentUser = firebaseAuth.currentUser
+        if (currentUser != null) {
+            currentUser.unlink(PhoneAuthProvider.PROVIDER_ID)
+                .addOnCompleteListener { task ->
+                    if (task.isSuccessful) {
+                        Log.d("ViewModelForHistoryWalkI", "Phone provider unlinked successfully.")
+                    } else {
+                        Log.e("ViewModelForHistoryWalkI", "Failed to unlink phone provider: ${task.exception}")
+                        mutableLiveDataOfNotification.postValue("Failed to unlink phone provider: ${task.exception?.message}")
+                    }
+                    firebaseAuth.signOut()
+                    mutableLiveDataOfIndicatorOfTfaVerified.value = false
+                    if (currentUser.uid.isNotEmpty()) {
+                        sharedPref.edit().putBoolean("tfaVerifiedForUser_${currentUser.uid}", false).apply()
+                    }
+                }
+        } else {
+            firebaseAuth.signOut()
+            mutableLiveDataOfIndicatorOfTfaVerified.value = false
         }
     }
 
