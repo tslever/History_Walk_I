@@ -13,3 +13,6 @@
 .externalNativeBuild
 .cxx
 local.properties
+
+aggregated_contents.txt
+app-release.aab
