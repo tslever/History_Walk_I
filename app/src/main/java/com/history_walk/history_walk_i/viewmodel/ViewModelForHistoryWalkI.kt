@@ -66,6 +66,8 @@ class ViewModelForHistoryWalkI (application: Application) : AndroidViewModel(app
 
     private var verificationId: String? = null
 
+    private val verificationIdKey = "tfa_verification_id"
+
 
     init {
         firebaseAuth.addAuthStateListener { theFirebaseAuth ->
@@ -311,6 +313,7 @@ class ViewModelForHistoryWalkI (application: Application) : AndroidViewModel(app
 
                 override fun onCodeSent(vid: String, token: PhoneAuthProvider.ForceResendingToken) {
                     verificationId = vid
+                    sharedPref.edit().putString(verificationIdKey, vid).apply()
                     Log.d("ViewModelForHistoryWalkI", "Code sent to $phoneNumber")
                 }
             })
@@ -420,7 +423,7 @@ class ViewModelForHistoryWalkI (application: Application) : AndroidViewModel(app
 
 
     fun verifyCodeForTfa(codeEntered: String, onResult: (Boolean) -> Unit) {
-        val vid = verificationId
+        val vid = sharedPref.getString(verificationIdKey, null)
         if (vid == null) {
             Log.e("ViewModelForHistoryWalkI", "No verificationId stored. Cannot verify code.")
             onResult(false)
@@ -439,6 +442,7 @@ class ViewModelForHistoryWalkI (application: Application) : AndroidViewModel(app
             .addOnCompleteListener { task ->
                 if (task.isSuccessful) {
                     onTwoFactorVerified()
+                    sharedPref.edit().remove(verificationIdKey).apply()
                     onResult(true)
                 } else {
                     Log.e("ViewModelForHistoryWalkI", "TFA linking failed: ${task.exception}")
