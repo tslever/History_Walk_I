@@ -104,7 +104,10 @@ fun HistoryWalkI(
                 EpisodeScreen(
                     episodeId = episodeId,
                     viewModel = viewModel,
-                    onGoToSettings = { navController.navigate("settings") },
+                    onGoToSettings = {
+                        navController.navigate("settings") {
+                            launchSingleTop = true
+                        } },
                     onEpisodeCompleted = {
                         navController.popBackStack("episodes", false)
                     }
@@ -115,11 +118,15 @@ fun HistoryWalkI(
         composable("episodes") {
             EpisodesScreen(
                 onGoToSettings = {
-                    navController.navigate("settings")
+                    navController.navigate("settings") {
+                        launchSingleTop = true
+                    }
                 },
                 viewModel = viewModel,
                 onEpisodeClick = { episodeId ->
-                    navController.navigate("episode/$episodeId")
+                    navController.navigate("episode/$episodeId") {
+                        launchSingleTop = true
+                    }
                 }
             )
         }
@@ -138,7 +145,9 @@ fun HistoryWalkI(
                     }
                 },
                 onGoToSettings = {
-                    navController.navigate("settings")
+                    navController.navigate("settings") {
+                        launchSingleTop = true
+                    }
                 },
                 viewModel = viewModel
             )
@@ -149,11 +158,11 @@ fun HistoryWalkI(
                 onContinue = {
                     if (!viewModel.hasSeenHome()) {
                         navController.navigate("home") {
-
+                            launchSingleTop = true
                         }
                     } else {
                         navController.navigate("episodes") {
-
+                            launchSingleTop = true
                         }
                     }
                 }
@@ -166,10 +175,13 @@ fun HistoryWalkI(
                 onLogInSuccess = {
                     navController.navigate("TFA") {
                         popUpTo("logIn") { inclusive = true }
+                        launchSingleTop = true
                     }
                 },
                 onNavigateToSignUp = {
-                    navController.navigate("signUp")
+                    navController.navigate("signUp") {
+                        launchSingleTop = true
+                    }
                 },
                 activity = activity
             )
@@ -182,6 +194,7 @@ fun HistoryWalkI(
                     viewModel.signOut()
                     navController.navigate("logIn") {
                         popUpTo("settings") { inclusive = true }
+                        launchSingleTop = true
                     }
                 }
             )
@@ -193,11 +206,12 @@ fun HistoryWalkI(
                 onSignUpSuccess = {
                     navController.navigate("TFA") {
                         popUpTo("signUp") { inclusive = true }
+                        launchSingleTop = true
                     }
                 },
                 onNavigateToLogin = {
                     navController.navigate("logIn") {
-                        popUpTo("signUp") { inclusive = true }
+                        launchSingleTop = true
                     }
                 }
             )
@@ -209,6 +223,7 @@ fun HistoryWalkI(
                 onTwoFactorSuccess = {
                     navController.navigate("intro") {
                         popUpTo("TFA") { inclusive = true }
+                        launchSingleTop = true
                     }
                 }
             )
@@ -219,7 +234,8 @@ fun HistoryWalkI(
         if (stateOfFirebaseUser == null) {
             if (navController.currentDestination?.route != "logIn") {
                 navController.navigate("logIn") {
-                    popUpTo("logIn") { inclusive = true }
+                    popUpTo("logIn") { inclusive = false }
+                    launchSingleTop = true
                 }
             }
         } else {
@@ -227,12 +243,14 @@ fun HistoryWalkI(
                 if (navController.currentDestination?.route != "TFA") {
                     navController.navigate("TFA") {
                         popUpTo("logIn") { inclusive = true }
+                        launchSingleTop = true
                     }
                 }
             } else {
                 if (navController.currentDestination?.route !in listOf("intro", "home", "episodes", "episode/{episodeId}", "settings")) {
                     navController.navigate("intro") {
-                        popUpTo("logIn") { inclusive = true }
+                        popUpTo("TFA") { inclusive = true }
+                        launchSingleTop = true
                     }
                 }
             }
