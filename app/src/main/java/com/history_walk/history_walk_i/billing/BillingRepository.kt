@@ -83,8 +83,7 @@ class BillingRepository(
         val userDataDoc = firestore.collection("users").document(usersUid).collection("data").document("userData")
         userDataDoc.update(
             mapOf(
-                "isPremium" to true,
-                "purchaseToken" to purchaseToken
+                "isPremium" to true
             )
         )
             .addOnSuccessListener {

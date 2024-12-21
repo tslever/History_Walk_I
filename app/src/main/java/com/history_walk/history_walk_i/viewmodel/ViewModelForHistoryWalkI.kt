@@ -218,6 +218,12 @@ class ViewModelForHistoryWalkI (application: Application) : AndroidViewModel(app
     }
 
 
+    fun isPhoneProviderLinked(): Boolean {
+        val currentUser = firebaseAuth.currentUser ?: return false
+        return currentUser.providerData.any { it.providerId == PhoneAuthProvider.PROVIDER_ID }
+    }
+
+
     override fun onCleared() {
         super.onCleared()
         billingRepository?.endConnection()
@@ -257,6 +263,32 @@ class ViewModelForHistoryWalkI (application: Application) : AndroidViewModel(app
             Log.e("ViewModelForHistoryWalkI", "User phone number not available.")
             mutableLiveDataOfNotification.value = "User phone number not available."
             return
+        }
+
+        if (isPhoneProviderLinked()) {
+            val currentUser = firebaseAuth.currentUser
+            if (currentUser != null) {
+                currentUser.unlink(PhoneAuthProvider.PROVIDER_ID)
+                    .addOnCompleteListener { task ->
+                        if (task.isSuccessful) {
+                            Log.d(
+                                "ViewModelForHistoryWalkI",
+                                "Phone provider unlinked successfully."
+                            )
+                        } else {
+                            Log.e(
+                                "ViewModelForHistoryWalkI",
+                                "Failed to unlink phone provider: ${task.exception}"
+                            )
+                            mutableLiveDataOfNotification.postValue("Failed to unlink phone provider: ${task.exception?.message}")
+                        }
+                        mutableLiveDataOfIndicatorOfTfaVerified.value = false
+                        if (currentUser.uid.isNotEmpty()) {
+                            sharedPref.edit()
+                                .putBoolean("tfaVerifiedForUser_${currentUser.uid}", false).apply()
+                        }
+                    }
+            }
         }
 
         val currentActivity = currentActivityRef?.get()
@@ -358,6 +390,7 @@ class ViewModelForHistoryWalkI (application: Application) : AndroidViewModel(app
                 }
             }
     }
+
 
 
     fun signOut() {
