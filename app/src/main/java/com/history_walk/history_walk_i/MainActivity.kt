@@ -24,6 +24,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import androidx.navigation.navigation
+import com.history_walk.history_walk_i.u.screens.MfaEnrollmentScreen
 import com.history_walk.history_walk_i.ui.screens.EmailVerificationScreen
 import com.history_walk.history_walk_i.ui.screens.EpisodeScreen
 import com.history_walk.history_walk_i.ui.screens.EpisodesScreen
@@ -57,6 +58,7 @@ object NavRoutes {
     const val SIGN_UP = "signUp"
     const val EMAIL_VERIFICATION = "emailVerification"
     const val TFA = "TFA"
+    const val MFA_ENROLLMENT = "mfaEnrollment"
 
     const val INTRO = "intro"
     const val HOME = "home"
@@ -103,9 +105,18 @@ fun NavGraphBuilder.authGraph(
             EmailVerificationScreen(
                 viewModel = viewModel,
                 onProceedToMfa = {
-                    navController.navigate(NavRoutes.TFA) {
-                        popUpTo(NavRoutes.EMAIL_VERIFICATION) { inclusive = true }
-                        launchSingleTop = true
+                    viewModel.initiateMfaEnrollment { success, error ->
+                        if (success) {
+                            navController.navigate(NavRoutes.MFA_ENROLLMENT) {
+                                popUpTo(NavRoutes.EMAIL_VERIFICATION) { inclusive = true }
+                                launchSingleTop = true
+                            }
+                        } else {
+                            navController.navigate(NavRoutes.LOG_IN) {
+                                popUpTo(NavRoutes.AUTH_GRAPH) { inclusive = true }
+                                launchSingleTop = true
+                            }
+                        }
                     }
                 }
             )
@@ -121,6 +132,23 @@ fun NavGraphBuilder.authGraph(
                 },
                 onCancel = {
                     viewModel.signOut()
+                    navController.navigate(NavRoutes.LOG_IN) {
+                        popUpTo(NavRoutes.AUTH_GRAPH) { inclusive = true }
+                        launchSingleTop = true
+                    }
+                }
+            )
+        }
+        composable(NavRoutes.MFA_ENROLLMENT) {
+            MfaEnrollmentScreen(
+                viewModel = viewModel,
+                onEnrollmentSuccess = {
+                    navController.navigate(NavRoutes.INTRO) {
+                        popUpTo(NavRoutes.AUTH_GRAPH) { inclusive = true }
+                        launchSingleTop = true
+                    }
+                },
+                onEnrollmentFailure = {
                     navController.navigate(NavRoutes.LOG_IN) {
                         popUpTo(NavRoutes.AUTH_GRAPH) { inclusive = true }
                         launchSingleTop = true
@@ -157,7 +185,7 @@ fun NavGraphBuilder.mainGraph(
                 onGoToEpisodes = {
                     viewModel.setHasSeenHome()
                     navController.navigate(NavRoutes.EPISODES) {
-                        launchSingleTop
+                        launchSingleTop = true
                     }
                 },
                 onUpgrade = { activity ->
@@ -235,6 +263,8 @@ fun HistoryWalkI(
     viewModel: ViewModelForHistoryWalkI = viewModel()
 ) {
     val activity = LocalContext.current as Activity
+    viewModel.setCurrentActivity(activity)
+
     var message by remember { mutableStateOf("") }
     val navController = rememberNavController()
     var showDialog by remember { mutableStateOf(false) }
@@ -285,7 +315,8 @@ fun HistoryWalkI(
                         NavRoutes.LOG_IN,
                         NavRoutes.SIGN_UP,
                         NavRoutes.EMAIL_VERIFICATION,
-                        NavRoutes.TFA
+                        NavRoutes.TFA,
+                        NavRoutes.MFA_ENROLLMENT
                 )
                     ) {
                     navController.navigate(NavRoutes.AUTH_GRAPH) {
@@ -295,7 +326,7 @@ fun HistoryWalkI(
                 }
             }
             !stateOfMfaVerified -> {
-                if (navController.currentDestination?.route != NavRoutes.TFA) {
+                if (navController.currentDestination?.route != NavRoutes.MFA_ENROLLMENT) {
                     navController.navigate(NavRoutes.TFA) {
                         popUpTo(NavRoutes.AUTH_GRAPH) { inclusive = true }
                         launchSingleTop = true

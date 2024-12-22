@@ -11,7 +11,7 @@ android {
 
     defaultConfig {
         applicationId = "com.history_walk.history_walk_i"
-        minSdk = 34
+        minSdk = 23
         targetSdk = 35
         versionCode = 6
         versionName = "1.0.0"

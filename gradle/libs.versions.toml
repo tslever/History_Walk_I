@@ -1,6 +1,7 @@
 [versions]
 agp = "8.7.3"
 billing = "7.1.1"
+firebaseAuthMultifactor = "21.1.0"
 firebaseBom = "33.7.0"
 googlecodeLibphonenumber = "8.12.62"
 kotlin = "2.0.0"
@@ -26,6 +27,7 @@ androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = 
 billing = { module = "com.android.billingclient:billing", version.ref = "billing" }
 billing-ktx = { module = "com.android.billingclient:billing-ktx", version.ref = "billing" }
 firebase-analytics = { module = "com.google.firebase:firebase-analytics", version = "22.1.2" }
+firebase-auth-multifactor = { module = "com.google.firebase:firebase-auth-multifactor", version.ref = "firebaseAuthMultifactor" }
 firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "firebaseBom" }
 googlecode-libphonenumber = { module = "com.googlecode.libphonenumber:libphonenumber", version.ref = "googlecodeLibphonenumber" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }

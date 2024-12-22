@@ -8,19 +8,22 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
-import com.google.firebase.auth.ActionCodeSettings
+import com.google.firebase.FirebaseException
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseAuthMultiFactorException
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.MultiFactorResolver
+import com.google.firebase.auth.MultiFactorSession
 import com.google.firebase.auth.PhoneAuthCredential
+import com.google.firebase.auth.PhoneAuthOptions
 import com.google.firebase.auth.PhoneAuthProvider
 import com.google.firebase.auth.PhoneMultiFactorGenerator
-import com.google.firebase.auth.actionCodeSettings
+import com.google.firebase.auth.PhoneMultiFactorInfo
 import com.google.firebase.firestore.FirebaseFirestore
 import com.history_walk.history_walk_i.billing.BillingRepository
 import kotlinx.coroutines.launch
 import java.lang.ref.WeakReference
+import java.util.concurrent.TimeUnit
 
 
 class ViewModelForHistoryWalkI (application: Application) : AndroidViewModel(application), BillingRepository.BillingListener {
@@ -28,6 +31,8 @@ class ViewModelForHistoryWalkI (application: Application) : AndroidViewModel(app
     private var billingRepository: BillingRepository? = null
 
     private var currentActivityRef: WeakReference<Activity>? = null
+
+    private var enrollmentSession: MultiFactorSession? = null
 
     private val firebaseAuth: FirebaseAuth = FirebaseAuth.getInstance()
     private val firebaseFirestore = FirebaseFirestore.getInstance()
@@ -68,7 +73,10 @@ class ViewModelForHistoryWalkI (application: Application) : AndroidViewModel(app
 
     private var phoneNumberOfUser: String? = null
 
-    private var verificationId: String? = null
+    private val mutableLiveDataOfVerificationId = MutableLiveData<String?>()
+    val verificationId: LiveData<String?> get() = mutableLiveDataOfVerificationId
+
+    private var verificationIdInternal: String? = null
 
 
     init {
@@ -200,6 +208,28 @@ class ViewModelForHistoryWalkI (application: Application) : AndroidViewModel(app
     }
 
 
+    fun initiateMfaEnrollment(onResult: (Boolean, String?) -> Unit = { _, _ -> }) {
+        val user = firebaseAuth.currentUser
+        if (user == null) {
+            Log.e("ViewModelForHistoryWalkI", "User is not authenticated.")
+            onResult(false, "User is not authenticated.")
+            return
+        }
+        user.multiFactor.getSession()
+            .addOnCompleteListener { sessionTask ->
+                if (sessionTask.isSuccessful) {
+                    enrollmentSession = sessionTask.result
+                    sendMfaEnrollmentCode()
+                    onResult(true, null)
+                } else {
+                    Log.e("ViewModelForHistoryWalkI", "Failed to get MFA session: ${sessionTask.exception?.message}")
+                    mutableLiveDataOfNotification.postValue("Failed to initiate MFA enrollment: ${sessionTask.exception?.message}")
+                    onResult(false, "Failed to initiate MFA enrollment: ${sessionTask.exception?.message}")
+                }
+            }
+    }
+
+
     override fun onCleared() {
         super.onCleared()
         billingRepository?.endConnection()
@@ -252,6 +282,69 @@ class ViewModelForHistoryWalkI (application: Application) : AndroidViewModel(app
                     Log.e("ViewModelForHistoryWalkI", "MFA Sign-In Failed: ${task.exception?.message}")
                     mutableLiveDataOfNotification.postValue("MFA Sign-In Failed: ${task.exception?.message}")
                     onResult(false, "MFA Sign-In Failed: ${task.exception?.message}")
+                }
+            }
+    }
+
+
+    private fun sendMfaEnrollmentCode() {
+        val session = enrollmentSession
+        if (session == null) {
+            Log.e("ViewModelForHistoryWalkI", "MFA Enrollment session is null.")
+            mutableLiveDataOfNotification.postValue("MFA Enrollment session is not initialized.")
+            return
+        }
+        val phoneNumber = phoneNumberOfUser
+        if (phoneNumber.isNullOrEmpty()) {
+            Log.e("ViewModelForHistoryWalkI", "User's phone number is not available.")
+            mutableLiveDataOfNotification.postValue("User's phone number is not available.")
+            return
+        }
+        val activity = currentActivityRef?.get()
+        if (activity == null) {
+            Log.e("ViewModelForHistoryWalkI", "Current Activity is not available.")
+            mutableLiveDataOfNotification.postValue("Current Activity is not available.")
+            return
+        }
+        val callbacks = object : PhoneAuthProvider.OnVerificationStateChangedCallbacks() {
+            override fun onVerificationCompleted(credential: PhoneAuthCredential) {
+                Log.d("ViewModelForHistoryWalkI", "Verification completed automatically.")
+                enrollMfaWithCredential(credential)
+            }
+            override fun onVerificationFailed(e: FirebaseException) {
+                Log.e("ViewModelForHistoryWalkI", "Verification failed: ${e.message}")
+                mutableLiveDataOfNotification.postValue("MFA Verification failed: ${e.message}")
+            }
+            override fun onCodeSent(verificationIdParam: String, token: PhoneAuthProvider.ForceResendingToken) {
+                super.onCodeSent(verificationIdParam, token)
+                Log.d("ViewModelForHistoryWalkI", "Verification code sent.")
+                verificationIdInternal = verificationIdParam
+                mutableLiveDataOfVerificationId.postValue(verificationIdParam)
+                mutableLiveDataOfNotification.postValue("Verification code sent to $phoneNumber.")
+            }
+        }
+        val options = PhoneAuthOptions.newBuilder(firebaseAuth)
+            .setPhoneNumber(phoneNumber)
+            .setTimeout(60L, TimeUnit.SECONDS)
+            .setActivity(activity)
+            .setMultiFactorSession(session)
+            .setCallbacks(callbacks)
+            .build()
+        PhoneAuthProvider.verifyPhoneNumber(options)
+    }
+
+
+    private fun enrollMfaWithCredential(credential: PhoneAuthCredential) {
+        val assertion = PhoneMultiFactorGenerator.getAssertion(credential)
+        firebaseAuth.currentUser?.multiFactor?.enroll(assertion, "Phone number MFA")
+            ?.addOnCompleteListener { task ->
+                if (task.isSuccessful) {
+                    Log.d("ViewModelForHistoryWalkI", "MFA Enrollment successful.")
+                    mutableLiveDataOfNotification.postValue("MFA Enrollment successful.")
+                    mutableLiveDataOfMfaVerified.postValue(true)
+                } else {
+                    Log.e("ViewModelForHistoryWalkI", "MFA Enrollment failed: ${task.exception?.message}")
+                    mutableLiveDataOfNotification.postValue("MFA Enrollment failed: ${task.exception?.message}")
                 }
             }
     }
@@ -320,8 +413,18 @@ class ViewModelForHistoryWalkI (application: Application) : AndroidViewModel(app
                     val user = firebaseAuth.currentUser
                     if (user != null) {
                         if (user.isEmailVerified) {
-                            mutableLiveDataOfMfaVerified.postValue(true)
-                            onResult(true, null)
+                            if (!user.multiFactor.enrolledFactors.any { it is PhoneMultiFactorInfo }) {
+                                initiateMfaEnrollment { success, error ->
+                                    if (success) {
+                                        onResult(true, null)
+                                    } else {
+                                        onResult(false, error)
+                                    }
+                                }
+                            } else {
+                                mutableLiveDataOfMfaVerified.postValue(true)
+                                onResult(true, null)
+                            }
                         } else {
                             user.sendEmailVerification()
                                 .addOnCompleteListener { verifyTask ->
@@ -428,15 +531,38 @@ class ViewModelForHistoryWalkI (application: Application) : AndroidViewModel(app
             onResult(false, "No MultiFactorResolver available.")
             return
         }
-        val verificationId = this.verificationId
-        if (verificationId == null) {
-            Log.e("ViewModelForHistoryWalkI", "No verification ID found.")
-            mutableLiveDataOfNotification.postValue("No verification ID found.")
-            onResult(false, "No verification ID found.")
+
+        val verificationId = verificationIdInternal
+        if (verificationId.isNullOrEmpty()) {
+            Log.e("ViewModelForHistoryWalkI", "Verification ID is not available.")
+            mutableLiveDataOfNotification.postValue("Verification ID is not available.")
+            onResult(false, "Verification ID is not available.")
+            return
+        }
+
+        val credential = PhoneAuthProvider.getCredential(verificationId, code)
+        resolveSignIn(credential, onResult)
+    }
+
+
+    fun verifyMfaEnrollmentCode(code: String, onResult: (Boolean, String?) -> Unit) {
+        val session = enrollmentSession
+        if (session == null) {
+            Log.e("ViewModelForHistoryWalkI", "MFA Enrollment session is null.")
+            mutableLiveDataOfNotification.postValue("MFA Enrollment session is not initialized.")
+            onResult(false, "MFA Enrollment session is not initialized.")
+            return
+        }
+        val verificationId = verificationIdInternal
+        if (verificationId.isNullOrEmpty()) {
+            Log.e("ViewModelForHistoryWalkI", "Verification ID is not available.")
+            mutableLiveDataOfNotification.postValue("Verification ID is not available.")
+            onResult(false, "Verification ID is not available.")
             return
         }
         val credential = PhoneAuthProvider.getCredential(verificationId, code)
-        resolveSignIn(credential, onResult)
+        enrollMfaWithCredential(credential)
+        onResult(true, null)
     }
 
 }

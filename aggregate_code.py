@@ -11,6 +11,7 @@ file_paths = [
     r'C:\Users\thoma\AndroidStudioProjects\History_Walk_I\app\src\main\java\com\history_walk\history_walk_i\ui\screens\HomeScreen.kt',
     r'C:\Users\thoma\AndroidStudioProjects\History_Walk_I\app\src\main\java\com\history_walk\history_walk_i\ui\screens\IntroScreen.kt',
     r'C:\Users\thoma\AndroidStudioProjects\History_Walk_I\app\src\main\java\com\history_walk\history_walk_i\ui\screens\LogInScreen.kt',
+    r'C:\Users\thoma\AndroidStudioProjects\History_Walk_I\app\src\main\java\com\history_walk\history_walk_i\ui\screens\MfaEnrollmentScreen.kt',
     r'C:\Users\thoma\AndroidStudioProjects\History_Walk_I\app\src\main\java\com\history_walk\history_walk_i\ui\screens\SettingsScreen.kt',
     r'C:\Users\thoma\AndroidStudioProjects\History_Walk_I\app\src\main\java\com\history_walk\history_walk_i\ui\screens\SignUpScreen.kt',
     r'C:\Users\thoma\AndroidStudioProjects\History_Walk_I\app\src\main\java\com\history_walk\history_walk_i\ui\screens\TfaScreen.kt',
