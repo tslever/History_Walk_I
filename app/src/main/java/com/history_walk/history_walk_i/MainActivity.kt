@@ -17,7 +17,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraphBuilder
-import androidx.navigation.NavHost
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -25,6 +24,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import androidx.navigation.navigation
+import com.history_walk.history_walk_i.ui.screens.EmailVerificationScreen
 import com.history_walk.history_walk_i.ui.screens.EpisodeScreen
 import com.history_walk.history_walk_i.ui.screens.EpisodesScreen
 import com.history_walk.history_walk_i.ui.screens.HomeScreen
@@ -55,6 +55,7 @@ object NavRoutes {
 
     const val LOG_IN = "logIn"
     const val SIGN_UP = "signUp"
+    const val EMAIL_VERIFICATION = "emailVerification"
     const val TFA = "TFA"
 
     const val INTRO = "intro"
@@ -76,7 +77,7 @@ fun NavGraphBuilder.authGraph(
                 onLogInSuccess = {
                     navController.navigate(NavRoutes.TFA) {
                         popUpTo(NavRoutes.AUTH_GRAPH) { inclusive = true }
-                        launchSingleTop
+                        launchSingleTop = true
                     }
                 },
                 onNavigateToSignUp = {
@@ -88,13 +89,24 @@ fun NavGraphBuilder.authGraph(
             SignUpScreen(
                 viewModel = viewModel,
                 onSignUpSuccess = {
-                    navController.navigate(NavRoutes.TFA) {
+                    navController.navigate(NavRoutes.EMAIL_VERIFICATION) {
                         popUpTo(NavRoutes.AUTH_GRAPH) { inclusive = true }
-                        launchSingleTop
+                        launchSingleTop = true
                     }
                 },
                 onNavigateToLogin = {
                     navController.popBackStack()
+                }
+            )
+        }
+        composable(NavRoutes.EMAIL_VERIFICATION) {
+            EmailVerificationScreen(
+                viewModel = viewModel,
+                onProceedToMfa = {
+                    navController.navigate(NavRoutes.TFA) {
+                        popUpTo(NavRoutes.EMAIL_VERIFICATION) { inclusive = true }
+                        launchSingleTop = true
+                    }
                 }
             )
         }
@@ -177,7 +189,7 @@ fun NavGraphBuilder.mainGraph(
             )
         }
         composable(
-            "episode/{episodeId}",
+            NavRoutes.EPISODE,
             arguments = listOf(
                 navArgument("episodeId") {
                     type = NavType.IntType
@@ -228,11 +240,8 @@ fun HistoryWalkI(
     var showDialog by remember { mutableStateOf(false) }
     val stateOfNotification by viewModel.notification.observeAsState()
     val stateOfFirebaseUser by viewModel.firebaseUser.observeAsState()
-    val stateOfTfaVerified by viewModel.tfaVerified.observeAsState(false)
+    val stateOfMfaVerified by viewModel.mfaVerified.observeAsState(false)
 
-    LaunchedEffect(Unit) {
-        viewModel.setCurrentActivity(activity)
-    }
 
     LaunchedEffect(stateOfNotification) {
         stateOfNotification?.let { theMessage ->
@@ -259,25 +268,33 @@ fun HistoryWalkI(
 
     NavHost(
         navController = navController,
-        startDestination = if (stateOfFirebaseUser == null) NavRoutes.AUTH_GRAPH else {
-            if (!stateOfTfaVerified) NavRoutes.AUTH_GRAPH else NavRoutes.MAIN_GRAPH
+        startDestination = when {
+            stateOfFirebaseUser == null || !stateOfMfaVerified -> NavRoutes.AUTH_GRAPH
+            else -> NavRoutes.MAIN_GRAPH
         }
     ) {
         authGraph(navController, viewModel)
         mainGraph(navController, viewModel)
     }
 
-    LaunchedEffect(stateOfFirebaseUser, stateOfTfaVerified) {
+    LaunchedEffect(stateOfFirebaseUser, stateOfMfaVerified) {
         when {
             stateOfFirebaseUser == null -> {
-                if (navController.currentDestination?.route !in listOf(NavRoutes.AUTH_GRAPH, NavRoutes.LOG_IN, NavRoutes.SIGN_UP, NavRoutes.TFA)) {
+                if (navController.currentDestination?.route !in listOf(
+                        NavRoutes.AUTH_GRAPH,
+                        NavRoutes.LOG_IN,
+                        NavRoutes.SIGN_UP,
+                        NavRoutes.EMAIL_VERIFICATION,
+                        NavRoutes.TFA
+                )
+                    ) {
                     navController.navigate(NavRoutes.AUTH_GRAPH) {
                         popUpTo(navController.graph.startDestinationId) { inclusive = true }
                         launchSingleTop = true
                     }
                 }
             }
-            !stateOfTfaVerified -> {
+            !stateOfMfaVerified -> {
                 if (navController.currentDestination?.route != NavRoutes.TFA) {
                     navController.navigate(NavRoutes.TFA) {
                         popUpTo(NavRoutes.AUTH_GRAPH) { inclusive = true }
@@ -286,7 +303,14 @@ fun HistoryWalkI(
                 }
             }
             else -> {
-                if (navController.currentDestination?.route !in listOf(NavRoutes.INTRO, NavRoutes.HOME, NavRoutes.EPISODES, "episode/{episodeId}", NavRoutes.SETTINGS)) {
+                if (navController.currentDestination?.route !in listOf(
+                        NavRoutes.INTRO,
+                        NavRoutes.HOME,
+                        NavRoutes.EPISODES,
+                        NavRoutes.EPISODE,
+                        NavRoutes.SETTINGS
+                )
+                    ) {
                     navController.navigate(NavRoutes.MAIN_GRAPH) {
                         popUpTo(navController.graph.startDestinationId) { inclusive = true }
                         launchSingleTop = true
