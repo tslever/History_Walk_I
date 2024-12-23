@@ -63,6 +63,9 @@ class ViewModelForHistoryWalkI (application: Application) : AndroidViewModel(app
     private val mutableLiveDataOfIndicatorOfWhetherUserHasUpgraded = MutableLiveData(false)
     val userHasUpgraded: LiveData<Boolean> = mutableLiveDataOfIndicatorOfWhetherUserHasUpgraded
 
+    private val mutableLiveDataOfIsLoading = MutableLiveData(true)
+    val isLoading: LiveData<Boolean> get() = mutableLiveDataOfIsLoading
+
     private val mutableLiveDataOfMfaVerified = MutableLiveData(false)
     val mfaVerified: LiveData<Boolean> get() = mutableLiveDataOfMfaVerified
 
@@ -94,12 +97,44 @@ class ViewModelForHistoryWalkI (application: Application) : AndroidViewModel(app
                 fetchPhoneNumberOfUser {
 
                 }
+                currentUser.reload().addOnCompleteListener { reloadTask ->
+                    if (reloadTask.isSuccessful) {
+                        currentUser.getIdToken(true).addOnCompleteListener { tokenTask ->
+                            if (tokenTask.isSuccessful) {
+                                Log.d("ViewModelForHistoryWalkI", "User reloaded and ID token refreshed.")
+                                Log.d("ViewModelForHistoryWalkI", "Email Verified: ${currentUser.isEmailVerified}")
+                                Log.d("ViewModelForHistoryWalkI", "MFA Enrolled Factors: ${currentUser.multiFactor.enrolledFactors.size}")
+                                if (currentUser.isEmailVerified) {
+                                    if (currentUser.multiFactor.enrolledFactors.isNotEmpty()) {
+                                        mutableLiveDataOfMfaVerified.postValue(true)
+                                        Log.d("ViewModelForHistoryWalkI", "User is verified.")
+                                    } else {
+                                        mutableLiveDataOfMfaVerified.postValue(false)
+                                        Log.d("ViewModelForHistoryWalkI", "MFA is not verified.")
+                                    }
+                                } else {
+                                    mutableLiveDataOfMfaVerified.postValue(false)
+                                    Log.d("ViewModelForHistoryWalkI", "User email is not verified.")
+                                }
+                            } else {
+                                Log.e("ViewModelForHistoryWalkI", "Failed to refresh ID token: ${tokenTask.exception?.message}")
+                                mutableLiveDataOfMfaVerified.postValue(false)
+                            }
+                            mutableLiveDataOfIsLoading.postValue(false)
+                        }
+                    } else {
+                        Log.e("ViewModelForHistoryWalkI", "Failed to reload user: ${reloadTask.exception?.message}")
+                        mutableLiveDataOfMfaVerified.postValue(false)
+                        mutableLiveDataOfIsLoading.postValue(false)
+                    }
+                }
             } else {
                 billingRepository?.endConnection()
                 billingRepository = null
                 mutableLiveDataOfIndicatorOfWhetherUserHasUpgraded.postValue(false)
                 mutableLiveDataOfMfaVerified.postValue(false)
                 multiFactorResolver = null
+                mutableLiveDataOfIsLoading.postValue(false)
             }
         }
     }
@@ -390,7 +425,6 @@ class ViewModelForHistoryWalkI (application: Application) : AndroidViewModel(app
                 Log.d("ViewModelForHistoryWalkI", "Verification code sent.")
                 verificationIdInternal = verificationIdParam
                 mutableLiveDataOfVerificationId.postValue(verificationIdParam)
-                mutableLiveDataOfNotification.postValue("Verification code sent to $phoneNumber.")
             }
         }
         val options = PhoneAuthOptions.newBuilder(firebaseAuth)
@@ -499,7 +533,6 @@ class ViewModelForHistoryWalkI (application: Application) : AndroidViewModel(app
                                 .addOnCompleteListener { verifyTask ->
                                     if (verifyTask.isSuccessful) {
                                         Log.d("ViewModelForHistoryWalkI", "Verification email sent to ${user.email}")
-                                        mutableLiveDataOfNotification.postValue("Please verify your email to proceed.")
                                         onResult(false, "Please verify your email to proceed.")
                                     } else {
                                         Log.e("ViewModelForHistoryWalkI", "Failed to send verification email: ${verifyTask.exception?.message}")

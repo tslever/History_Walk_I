@@ -2,10 +2,14 @@ package com.history_walk.history_walk_i
 
 import android.app.Activity
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.MaterialTheme.typography
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -14,6 +18,8 @@ import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraphBuilder
@@ -271,6 +277,7 @@ fun HistoryWalkI(
     val activity = LocalContext.current as Activity
     viewModel.setCurrentActivity(activity)
 
+    val isLoading by viewModel.isLoading.observeAsState(true)
     var message by remember { mutableStateOf("") }
     val navController = rememberNavController()
     var showDialog by remember { mutableStateOf(false) }
@@ -302,58 +309,24 @@ fun HistoryWalkI(
         )
     }
 
-    NavHost(
-        navController = navController,
-        startDestination = when {
+    if (isLoading) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            Text("Loading...", style = typography.displayLarge)
+        }
+    } else {
+        val startDestination = when {
             stateOfFirebaseUser == null || !stateOfMfaVerified -> NavRoutes.AUTH_GRAPH
             else -> NavRoutes.MAIN_GRAPH
         }
-    ) {
-        authGraph(navController, viewModel)
-        mainGraph(navController, viewModel)
-    }
-
-    LaunchedEffect(stateOfFirebaseUser, stateOfMfaVerified) {
-        when {
-            stateOfFirebaseUser == null -> {
-                if (navController.currentDestination?.route !in listOf(
-                        NavRoutes.AUTH_GRAPH,
-                        NavRoutes.LOG_IN,
-                        NavRoutes.SIGN_UP,
-                        NavRoutes.EMAIL_VERIFICATION,
-                        NavRoutes.TFA,
-                        NavRoutes.MFA_ENROLLMENT
-                )
-                    ) {
-                    navController.navigate(NavRoutes.AUTH_GRAPH) {
-                        popUpTo(navController.graph.startDestinationId) { inclusive = true }
-                        launchSingleTop = true
-                    }
-                }
-            }
-            !stateOfMfaVerified -> {
-                if (navController.currentDestination?.route != NavRoutes.MFA_ENROLLMENT) {
-                    navController.navigate(NavRoutes.TFA) {
-                        popUpTo(NavRoutes.AUTH_GRAPH) { inclusive = true }
-                        launchSingleTop = true
-                    }
-                }
-            }
-            else -> {
-                if (navController.currentDestination?.route !in listOf(
-                        NavRoutes.INTRO,
-                        NavRoutes.HOME,
-                        NavRoutes.EPISODES,
-                        NavRoutes.EPISODE,
-                        NavRoutes.SETTINGS
-                )
-                    ) {
-                    navController.navigate(NavRoutes.MAIN_GRAPH) {
-                        popUpTo(navController.graph.startDestinationId) { inclusive = true }
-                        launchSingleTop = true
-                    }
-                }
-            }
+        NavHost(
+            navController = navController,
+            startDestination = startDestination
+        ) {
+            authGraph(navController, viewModel)
+            mainGraph(navController, viewModel)
         }
     }
 }
