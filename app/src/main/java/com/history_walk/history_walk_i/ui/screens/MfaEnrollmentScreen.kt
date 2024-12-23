@@ -1,4 +1,4 @@
-package com.history_walk.history_walk_i.u.screens
+package com.history_walk.history_walk_i.ui.screens
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement

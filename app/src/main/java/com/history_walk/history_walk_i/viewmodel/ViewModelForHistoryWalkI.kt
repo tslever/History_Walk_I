@@ -251,7 +251,6 @@ class ViewModelForHistoryWalkI (application: Application) : AndroidViewModel(app
     private fun sendMfaSignInCode(session: MultiFactorSession) {
         val user = firebaseAuth.currentUser ?: run {
             Log.e("ViewModelForHistoryWalkI", "User is not authenticated.")
-            mutableLiveDataOfNotification.postValue("User is not authenticated.")
             return
         }
         val phoneNumber = phoneNumberOfUser
@@ -288,7 +287,6 @@ class ViewModelForHistoryWalkI (application: Application) : AndroidViewModel(app
                 Log.d("ViewModelForHistoryWalkI", "MFA sign-in verification code sent.")
                 verificationIdInternal = verificationIdParam
                 mutableLiveDataOfVerificationId.postValue(verificationIdParam)
-                mutableLiveDataOfNotification.postValue("MFA verification code sent to $phoneNumber.")
             }
         }
         val options = PhoneAuthOptions.newBuilder(firebaseAuth)
@@ -412,7 +410,6 @@ class ViewModelForHistoryWalkI (application: Application) : AndroidViewModel(app
             ?.addOnCompleteListener { task ->
                 if (task.isSuccessful) {
                     Log.d("ViewModelForHistoryWalkI", "MFA Enrollment successful.")
-                    mutableLiveDataOfNotification.postValue("MFA Enrollment successful.")
                     mutableLiveDataOfMfaVerified.postValue(true)
                 } else {
                     Log.e("ViewModelForHistoryWalkI", "MFA Enrollment failed: ${task.exception?.message}")
@@ -556,7 +553,6 @@ class ViewModelForHistoryWalkI (application: Application) : AndroidViewModel(app
                             .addOnCompleteListener { verifyTask ->
                                 if (verifyTask.isSuccessful) {
                                     Log.d("ViewModelForHistoryWalkI", "Verification email sent to ${user.email}.")
-                                    mutableLiveDataOfNotification.postValue("Verification email sent. Please verify your email before proceeding.")
                                     val uid = user.uid
                                     val userDataDoc = firebaseFirestore.collection("users").document(uid).collection("data").document("userData")
                                     userDataDoc.set(

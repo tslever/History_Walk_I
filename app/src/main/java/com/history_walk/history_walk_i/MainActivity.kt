@@ -24,7 +24,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import androidx.navigation.navigation
-import com.history_walk.history_walk_i.u.screens.MfaEnrollmentScreen
+import com.history_walk.history_walk_i.ui.screens.MfaEnrollmentScreen
 import com.history_walk.history_walk_i.ui.screens.EmailVerificationScreen
 import com.history_walk.history_walk_i.ui.screens.EpisodeScreen
 import com.history_walk.history_walk_i.ui.screens.EpisodesScreen
