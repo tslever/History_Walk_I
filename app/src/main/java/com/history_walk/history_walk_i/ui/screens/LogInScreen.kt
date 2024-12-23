@@ -29,7 +29,8 @@ import com.history_walk.history_walk_i.viewmodel.ViewModelForHistoryWalkI
 fun LogInScreen(
     viewModelForHistoryWalkI: ViewModelForHistoryWalkI,
     onLogInSuccess: () -> Unit,
-    onNavigateToSignUp: () -> Unit
+    onNavigateToSignUp: () -> Unit,
+    onMfaRequired: () -> Unit
 ) {
     var emailAddress by remember { mutableStateOf("") }
     var errorMessage by remember { mutableStateOf<String?>(null) }
@@ -67,6 +68,8 @@ fun LogInScreen(
                 viewModelForHistoryWalkI.signIn(emailAddress, password) { success, error ->
                     if (success) {
                         onLogInSuccess()
+                    } else if (error == "MFA required") {
+                        onMfaRequired()
                     } else {
                         errorMessage = error ?: "Unknown error occurred."
                     }

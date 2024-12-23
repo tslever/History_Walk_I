@@ -230,6 +230,78 @@ class ViewModelForHistoryWalkI (application: Application) : AndroidViewModel(app
     }
 
 
+    private fun initiateMfaSignIn() {
+        viewModelScope.launch {
+            try {
+                val mfaSession = multiFactorResolver?.getSession()
+                if (mfaSession != null) {
+                    sendMfaSignInCode(mfaSession)
+                } else {
+                    Log.e("ViewModelForHistoryWalkI", "Failed to get MFA sign-in session.")
+                    mutableLiveDataOfNotification.postValue("Failed to initiate MFA sign-in.")
+                }
+            } catch (e: Exception) {
+                Log.e("ViewModelForHistoryWalkI", "Failed to get MFA sign-in session: ${e.message}")
+                mutableLiveDataOfNotification.postValue("Failed to initiate MFA sign-in: ${e.message}")
+            }
+        }
+    }
+
+
+    private fun sendMfaSignInCode(session: MultiFactorSession) {
+        val user = firebaseAuth.currentUser ?: run {
+            Log.e("ViewModelForHistoryWalkI", "User is not authenticated.")
+            mutableLiveDataOfNotification.postValue("User is not authenticated.")
+            return
+        }
+        val phoneNumber = phoneNumberOfUser
+        if (phoneNumber.isNullOrEmpty()) {
+            Log.e("ViewModelForHistoryWalkI", "User's phone number is not available.")
+            mutableLiveDataOfNotification.postValue("User's phone number is not available.")
+            return
+        }
+        val activity = currentActivityRef?.get()
+        if (activity == null) {
+            Log.e("ViewModelForHistoryWalkI", "Current Activity is not available.")
+            mutableLiveDataOfNotification.postValue("Current Activity is not available.")
+            return
+        }
+        val callbacks = object : PhoneAuthProvider.OnVerificationStateChangedCallbacks() {
+            override fun onVerificationCompleted(credential: PhoneAuthCredential) {
+                Log.d("ViewModelForHistoryWalkI", "MFA sign-in verification completed automatically.")
+                resolveSignIn(credential) { success, error ->
+                    if (success) {
+                        // TODO
+                    } else {
+                        // TODO
+                    }
+                }
+            }
+
+            override fun onVerificationFailed(e: FirebaseException) {
+                Log.e("ViewModelForHistoryWalkI", "MFA sign-in verification failed: ${e.message}")
+                mutableLiveDataOfNotification.postValue("MFA sign-in verification failed: ${e.message}")
+            }
+
+            override fun onCodeSent(verificationIdParam: String, token: PhoneAuthProvider.ForceResendingToken) {
+                super.onCodeSent(verificationIdParam, token)
+                Log.d("ViewModelForHistoryWalkI", "MFA sign-in verification code sent.")
+                verificationIdInternal = verificationIdParam
+                mutableLiveDataOfVerificationId.postValue(verificationIdParam)
+                mutableLiveDataOfNotification.postValue("MFA verification code sent to $phoneNumber.")
+            }
+        }
+        val options = PhoneAuthOptions.newBuilder(firebaseAuth)
+            .setPhoneNumber(phoneNumber)
+            .setTimeout(60L, TimeUnit.SECONDS)
+            .setActivity(activity)
+            .setMultiFactorSession(session)
+            .setCallbacks(callbacks)
+            .build()
+        PhoneAuthProvider.verifyPhoneNumber(options)
+    }
+
+
     override fun onCleared() {
         super.onCleared()
         billingRepository?.endConnection()
@@ -445,6 +517,7 @@ class ViewModelForHistoryWalkI (application: Application) : AndroidViewModel(app
                     val exception = task.exception
                     if (exception is FirebaseAuthMultiFactorException) {
                         multiFactorResolver = exception.resolver
+                        initiateMfaSignIn()
                         onResult(false, "MFA required")
                     } else {
                         Log.e("ViewModelForHistoryWalkI", "Email sign-in failed.", exception)

@@ -77,13 +77,19 @@ fun NavGraphBuilder.authGraph(
             LogInScreen(
                 viewModelForHistoryWalkI = viewModel,
                 onLogInSuccess = {
-                    navController.navigate(NavRoutes.TFA) {
+                    navController.navigate(NavRoutes.MAIN_GRAPH) {
                         popUpTo(NavRoutes.AUTH_GRAPH) { inclusive = true }
                         launchSingleTop = true
                     }
                 },
                 onNavigateToSignUp = {
                     navController.navigate(NavRoutes.SIGN_UP)
+                },
+                onMfaRequired = {
+                    navController.navigate(NavRoutes.TFA) {
+                        popUpTo(NavRoutes.AUTH_GRAPH) { inclusive = true }
+                        launchSingleTop = true
+                    }
                 }
             )
         }
@@ -125,7 +131,7 @@ fun NavGraphBuilder.authGraph(
             TfaScreen(
                 viewModel = viewModel,
                 onTwoFactorSuccess = {
-                    navController.navigate(NavRoutes.INTRO) {
+                    navController.navigate(NavRoutes.MAIN_GRAPH) {
                         popUpTo(NavRoutes.AUTH_GRAPH) { inclusive = true }
                         launchSingleTop = true
                     }
