@@ -226,6 +226,46 @@ class ViewModelForHistoryWalkI (application: Application) : AndroidViewModel(app
     }
 
 
+    private fun finalizeMultiFactorSignIn(
+        credential: PhoneAuthCredential,
+        multiFactorResolver: MultiFactorResolver,
+        onResult: (Boolean, String?) -> Unit
+    ) {
+        val multiFactorAssertion = PhoneMultiFactorGenerator.getAssertion(credential)
+        multiFactorResolver
+            .resolveSignIn(multiFactorAssertion)
+            .addOnCompleteListener { resolveTask ->
+                if (resolveTask.isSuccessful) {
+                    mutableLiveDataOfMfaVerified.postValue(true)
+                    onResult(true, null)
+                } else {
+                    val errorMsg = "finalizeMultiFactorSignIn failed: ${resolveTask.exception?.message}"
+                    Log.e("ViewModelForHistoryWalkI", errorMsg)
+                    onResult(false, errorMsg)
+                }
+            }
+    }
+
+
+    private fun finalizeSignInWithAssertion(
+        credential: PhoneAuthCredential,
+        callback: (String?) -> Unit
+    ) {
+        FirebaseAuth.getInstance()
+            .signInWithCredential(credential)
+            .addOnCompleteListener { signInTask ->
+                if (signInTask.isSuccessful) {
+                    mutableLiveDataOfMfaVerified.postValue(true)
+                    callback(null)
+                } else {
+                    val errorMsg = "finalizeSignInWithAssertion failed: " + (signInTask.exception?.message ?: "Unknown error")
+                    Log.e("ViewModelForHistoryWalkI", errorMsg)
+                    callback(errorMsg)
+                }
+            }
+    }
+
+
     fun getSelectedNumberOfSteps(): Int {
         return sharedPref.getInt("selectedNumberOfSteps", 70_000)
     }
@@ -392,6 +432,50 @@ class ViewModelForHistoryWalkI (application: Application) : AndroidViewModel(app
     }
 
 
+    private fun sendCodeForSecondFactor(user: FirebaseUser, callback: (String?) -> Unit) {
+        user.multiFactor.session
+            .addOnCompleteListener { sessionTask ->
+                if (!sessionTask.isSuccessful) {
+                    callback("Failed to get multi-factor session: ${sessionTask.exception?.message}")
+                    return@addOnCompleteListener
+                }
+                val session = sessionTask.result
+                val phoneNumber = phoneNumberOfUser
+                if (phoneNumber.isNullOrEmpty()) {
+                    callback("User's phone number is not available.")
+                    return@addOnCompleteListener
+                }
+                val activity = currentActivityRef?.get()
+                if (activity == null) {
+                    callback("Current Activity is not available.")
+                    return@addOnCompleteListener
+                }
+                val options = PhoneAuthOptions.newBuilder(FirebaseAuth.getInstance())
+                    .setActivity(activity)
+                    .setMultiFactorSession(session)
+                    .setPhoneNumber(phoneNumber)
+                    .setTimeout(60L, TimeUnit.SECONDS)
+                    .setCallbacks(object : PhoneAuthProvider.OnVerificationStateChangedCallbacks() {
+                        override fun onVerificationCompleted(credential: PhoneAuthCredential) {
+                            finalizeSignInWithAssertion(credential, callback)
+                        }
+
+                        override fun onVerificationFailed(e: FirebaseException) {
+                            callback("Second-factor verification failed: ${e.message}")
+                        }
+
+                        override fun onCodeSent(verificationId: String, token: PhoneAuthProvider.ForceResendingToken) {
+                            verificationIdInternal = verificationId
+                            mutableLiveDataOfVerificationId.postValue(verificationId)
+                            callback(null)
+                        }
+                    })
+                    .build()
+                PhoneAuthProvider.verifyPhoneNumber(options)
+            }
+    }
+
+
     private fun sendMfaEnrollmentCode() {
         val session = enrollmentSession
         if (session == null) {
@@ -510,53 +594,66 @@ class ViewModelForHistoryWalkI (application: Application) : AndroidViewModel(app
 
 
     fun signIn(emailAddress: String, password: String, onResult: (Boolean, String?) -> Unit) {
-        firebaseAuth.signInWithEmailAndPassword(emailAddress, password)
+        FirebaseAuth.getInstance()
+            .signInWithEmailAndPassword(emailAddress, password)
             .addOnCompleteListener { task ->
                 if (task.isSuccessful) {
-                    val user = firebaseAuth.currentUser
-                    if (user != null) {
-                        if (user.isEmailVerified) {
-                            if (!user.multiFactor.enrolledFactors.any { it is PhoneMultiFactorInfo }) {
-                                initiateMfaEnrollment { success, error ->
-                                    if (success) {
-                                        onResult(true, null)
-                                    } else {
-                                        onResult(false, error)
-                                    }
-                                }
-                            } else {
-                                mutableLiveDataOfMfaVerified.postValue(true)
-                                onResult(true, null)
-                            }
-                        } else {
-                            user.sendEmailVerification()
-                                .addOnCompleteListener { verifyTask ->
-                                    if (verifyTask.isSuccessful) {
-                                        Log.d("ViewModelForHistoryWalkI", "Verification email sent to ${user.email}")
-                                        onResult(false, "Please verify your email to proceed.")
-                                    } else {
-                                        Log.e("ViewModelForHistoryWalkI", "Failed to send verification email: ${verifyTask.exception?.message}")
-                                        onResult(false, "Failed to send verification email: ${verifyTask.exception?.message}")
-                                    }
-                                }
-                        }
-                    } else {
+                    val user = FirebaseAuth.getInstance().currentUser
+                    if (user == null) {
                         onResult(false, "User is null after sign-in.")
+                        return@addOnCompleteListener
                     }
-                } else {
+                    val hasPhoneFactor = user.multiFactor.enrolledFactors.any { it is PhoneMultiFactorInfo }
+                    if (!hasPhoneFactor) {
+                        onResult(true, null)
+                    } else {
+                        sendCodeForSecondFactor(user) { codeSentError ->
+                            if (codeSentError != null) {
+                                onResult(false, codeSentError)
+                            } else {
+                                onResult(false, "MFA required")
+                            }
+                        }
+                    }
+                }
+                else {
                     val exception = task.exception
                     if (exception is FirebaseAuthMultiFactorException) {
-                        multiFactorResolver = exception.resolver
-                        initiateMfaSignIn()
-                        onResult(false, "MFA required")
+                        val multiFactorResolver = exception.resolver
+                        val phoneHint = multiFactorResolver.hints
+                            .filterIsInstance<PhoneMultiFactorInfo>()
+                            .firstOrNull()
+                        if (phoneHint == null) {
+                            onResult(false, "No phone factor found in multiFactorResolver.")
+                            return@addOnCompleteListener
+                        }
+                        val options = PhoneAuthOptions.newBuilder(FirebaseAuth.getInstance())
+                            .setActivity(currentActivityRef?.get() ?: return@addOnCompleteListener)
+                            .setMultiFactorSession(multiFactorResolver.session)
+                            .setMultiFactorHint(phoneHint)
+                            .setCallbacks(object : PhoneAuthProvider.OnVerificationStateChangedCallbacks() {
+                                override fun onVerificationCompleted(credential: PhoneAuthCredential) {
+                                    finalizeMultiFactorSignIn(credential, multiFactorResolver, onResult)
+                                }
+                                override fun onVerificationFailed(e: FirebaseException) {
+                                    onResult(false, "MFA verification failed: ${e.message}")
+                                }
+                                override fun onCodeSent(verificationId: String, token: PhoneAuthProvider.ForceResendingToken) {
+                                    this@ViewModelForHistoryWalkI.multiFactorResolver = multiFactorResolver
+                                    verificationIdInternal = verificationId
+                                    mutableLiveDataOfVerificationId.value = verificationId
+                                    onResult(false, "MFA required")
+                                }
+                            })
+                            .setTimeout(30L, TimeUnit.SECONDS)
+                            .build()
+                        PhoneAuthProvider.verifyPhoneNumber(options)
                     } else {
-                        Log.e("ViewModelForHistoryWalkI", "Email sign-in failed.", exception)
                         onResult(false, exception?.message)
                     }
                 }
             }
             .addOnFailureListener { e ->
-                Log.e("ViewModelForHistoryWalkI", "Sign-in error: ${e.message}")
                 onResult(false, e.message)
             }
     }
