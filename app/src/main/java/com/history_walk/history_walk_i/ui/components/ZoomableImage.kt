@@ -2,6 +2,8 @@ package com.history_walk.history_walk_i.ui.components
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.gestures.detectTransformGestures
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -25,30 +27,50 @@ fun ZoomableImage(
     val maxScale = 5f
     val minScale = 1f
 
-    val maxOffsetX = 500f
-    val minOffsetX = -500f
-    val maxOffsetY = 500f
-    val minOffsetY = -500f
+    BoxWithConstraints(modifier = modifier) {
+        val containerWidth = constraints.maxWidth.toFloat()
+        val containerHeight = constraints.maxHeight.toFloat()
 
-    Image(
-        painter = painter,
-        contentDescription = contentDescription,
-        modifier = modifier
-            .graphicsLayer(
-                scaleX = scale,
-                scaleY = scale,
-                translationX = offset.x,
-                translationY = offset.y
-            )
-            .pointerInput(Unit) {
-                detectTransformGestures { centroid, pan, zoom, rotation ->
-                    scale = (scale * zoom).coerceIn(minScale, maxScale)
+        Image(
+            painter = painter,
+            contentDescription = contentDescription,
+            modifier = Modifier
+                .fillMaxSize()
+                .graphicsLayer(
+                    scaleX = scale,
+                    scaleY = scale,
+                    translationX = offset.x,
+                    translationY = offset.y
+                )
+                .pointerInput(Unit) {
+                    detectTransformGestures { centroid, pan, zoom, rotation ->
 
-                    val focalPoint = centroid - offset
-                    val clampedX = (offset.x + pan.x + (centroid.x - focalPoint.x) * (1f - zoom)).coerceIn(minOffsetX, maxOffsetX)
-                    val clampedY = (offset.y + pan.y + (centroid.y - focalPoint.y) * (1f - zoom)).coerceIn(minOffsetY, maxOffsetY)
-                    offset = Offset(clampedX, clampedY)
+                        val newScale = (scale * zoom).coerceIn(minScale, maxScale)
+                        val scaleFactor = newScale / scale
+                        scale = newScale
+
+                        val panSensitivity = 2.0f
+                        offset += pan * scaleFactor * panSensitivity
+
+                        val scaledWidth = containerWidth * scale
+                        val scaledHeight = containerHeight * scale
+
+                        val maxX = (scaledWidth - containerWidth) / 2
+                        val maxY = (scaledHeight - containerHeight) / 2
+
+                        val clampedOffsetX = if (scaledWidth > containerWidth) {
+                            offset.x.coerceIn(-maxX, maxX)
+                        } else {
+                            0f
+                        }
+                        val clampedOffsetY = if (scaledHeight > containerHeight) {
+                            offset.y.coerceIn(-maxY, maxY)
+                        } else {
+                            0f
+                        }
+                        offset = Offset(clampedOffsetX, clampedOffsetY)
+                    }
                 }
-            }
-    )
+        )
+    }
 }
