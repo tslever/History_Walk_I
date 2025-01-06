@@ -94,8 +94,10 @@ fun MapWithPathAndCircle(modifier: Modifier) {
             val totalDistance = pathPoints.zipWithNext { p1, p2 -> (p2 - p1).length() }.sum()
             val distanceAlongPath = fraction * totalDistance
             var distanceAccum = 0f
-            var circleCenter = pathPoints[0]
-            pathPoints.zipWithNext { p1, p2 ->
+            var circleCenter = pathPoints.first()
+            for (i in 0 until pathPoints.lastIndex) {
+                val p1 = pathPoints[i]
+                val p2 = pathPoints[i + 1]
                 val segmentLength = (p2 - p1).length()
                 if (distanceAccum + segmentLength >= distanceAlongPath) {
                     val remaining = distanceAlongPath - distanceAccum
@@ -104,7 +106,7 @@ fun MapWithPathAndCircle(modifier: Modifier) {
                         x = p1.x + t * (p2.x - p1.x),
                         y = p1.y + t * (p2.y - p1.y)
                     )
-                    return@zipWithNext
+                    break
                 }
                 distanceAccum += segmentLength
             }
