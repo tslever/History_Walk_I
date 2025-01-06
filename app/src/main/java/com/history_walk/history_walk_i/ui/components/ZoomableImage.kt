@@ -22,6 +22,14 @@ fun ZoomableImage(
     var scale by remember { mutableStateOf(1f) }
     var offset by remember { mutableStateOf(Offset.Zero) }
 
+    val maxScale = 5f
+    val minScale = 1f
+
+    val maxOffsetX = 500f
+    val minOffsetX = -500f
+    val maxOffsetY = 500f
+    val minOffsetY = -500f
+
     Image(
         painter = painter,
         contentDescription = contentDescription,
@@ -33,9 +41,13 @@ fun ZoomableImage(
                 translationY = offset.y
             )
             .pointerInput(Unit) {
-                detectTransformGestures { _, pan, zoom, _ ->
-                    scale = (scale * zoom).coerceIn(1f, 5f)
-                    offset += pan
+                detectTransformGestures { centroid, pan, zoom, rotation ->
+                    scale = (scale * zoom).coerceIn(minScale, maxScale)
+
+                    val focalPoint = centroid - offset
+                    val clampedX = (offset.x + pan.x + (centroid.x - focalPoint.x) * (1f - zoom)).coerceIn(minOffsetX, maxOffsetX)
+                    val clampedY = (offset.y + pan.y + (centroid.y - focalPoint.y) * (1f - zoom)).coerceIn(minOffsetY, maxOffsetY)
+                    offset = Offset(clampedX, clampedY)
                 }
             }
     )
