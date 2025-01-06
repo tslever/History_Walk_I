@@ -2,7 +2,7 @@ import os
 
 # List of file paths to aggregate
 file_paths = [
-    r'C:\Users\thoma\AndroidStudioProjects\History_Walk_I\app\src\main\AndroidManifest.xml',
+    #r'C:\Users\thoma\AndroidStudioProjects\History_Walk_I\app\src\main\AndroidManifest.xml',
     r'C:\Users\thoma\AndroidStudioProjects\History_Walk_I\app\src\main\java\com\history_walk\history_walk_i\billing\BillingRepository.kt',
     r'C:\Users\thoma\AndroidStudioProjects\History_Walk_I\app\src\main\java\com\history_walk\history_walk_i\ui\components\SettingsButton.kt',
     r'C:\Users\thoma\AndroidStudioProjects\History_Walk_I\app\src\main\java\com\history_walk\history_walk_i\ui\screens\EmailVerificationScreen.kt',
@@ -19,8 +19,8 @@ file_paths = [
     r'C:\Users\thoma\AndroidStudioProjects\History_Walk_I\app\src\main\java\com\history_walk\history_walk_i\ui\theme\Type.kt',
     r'C:\Users\thoma\AndroidStudioProjects\History_Walk_I\app\src\main\java\com\history_walk\history_walk_i\viewmodel\ViewModelForHistoryWalkI.kt',
     r'C:\Users\thoma\AndroidStudioProjects\History_Walk_I\app\src\main\java\com\history_walk\history_walk_i\MainActivity.kt',
-    r'C:\Users\thoma\AndroidStudioProjects\History_Walk_I\build.gradle.kts',
-    r'C:\Users\thoma\AndroidStudioProjects\History_Walk_I\app\build.gradle.kts'
+    #r'C:\Users\thoma\AndroidStudioProjects\History_Walk_I\build.gradle.kts',
+    #r'C:\Users\thoma\AndroidStudioProjects\History_Walk_I\app\build.gradle.kts'
 ]
 
 def aggregate_files(file_paths):
