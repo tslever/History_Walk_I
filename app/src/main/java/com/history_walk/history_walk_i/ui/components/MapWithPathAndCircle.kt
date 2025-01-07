@@ -5,8 +5,11 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -20,7 +23,10 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.dp
 import com.history_walk.history_walk_i.R
 import kotlin.math.sqrt
 
@@ -34,16 +40,21 @@ fun MapWithPathAndCircle(modifier: Modifier) {
     var scale by remember { mutableStateOf(1f) }
     var offset by remember { mutableStateOf(Offset.Zero) }
 
-    val pathPoints = listOf(
+    val originalPathPoints = listOf(
         Offset(200f, 200f),
         Offset(600f, 200f),
         Offset(600f, 450f),
         Offset(950f, 450f)
     )
 
+    val alhambraPainter = painterResource(id = R.drawable.the_alhambra)
+    val intrinsicSize = alhambraPainter.intrinsicSize
+    val imageAspectRatio = intrinsicSize.width / intrinsicSize.height
+
     Box(
         modifier = modifier
             .fillMaxSize()
+            .aspectRatio(imageAspectRatio)
             .pointerInput(Unit) {
                 detectTransformGestures { _, pan, zoom, _ ->
                     val newScale = (scale * zoom).coerceIn(minScale, maxScale)
@@ -54,22 +65,22 @@ fun MapWithPathAndCircle(modifier: Modifier) {
                 }
             }
     ) {
-        val alhambraPainter = painterResource(id = R.drawable.the_alhambra)
         Image(
             painter = alhambraPainter,
             contentDescription = "The Alhambra Map",
             modifier = Modifier
-                .fillMaxSize()
+                .matchParentSize()
                 .graphicsLayer(
                     scaleX = scale,
                     scaleY = scale,
                     translationX = offset.x,
                     translationY = offset.y
-                )
+                ),
+            contentScale = ContentScale.FillBounds
         )
         Canvas(
             modifier = Modifier
-                .fillMaxSize()
+                .matchParentSize()
                 .graphicsLayer(
                     scaleX = scale,
                     scaleY = scale,
@@ -77,6 +88,14 @@ fun MapWithPathAndCircle(modifier: Modifier) {
                     translationY = offset.y
                 )
         ) {
+            val scaleFactorX = size.width / intrinsicSize.width
+            val scaleFactorY = size.height / intrinsicSize.height
+            val pathPoints = originalPathPoints.map { pt ->
+                Offset(
+                    x = pt.x * scaleFactorX,
+                    y = pt.y * scaleFactorY
+                )
+            }
             val path = Path().apply {
                 moveTo(pathPoints[0].x, pathPoints[0].y)
                 for (i in 1 until pathPoints.size) {

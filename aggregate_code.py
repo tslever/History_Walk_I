@@ -4,8 +4,8 @@ import os
 file_paths = [
     #r'C:\Users\thoma\AndroidStudioProjects\History_Walk_I\app\src\main\AndroidManifest.xml',
     r'C:\Users\thoma\AndroidStudioProjects\History_Walk_I\app\src\main\java\com\history_walk\history_walk_i\billing\BillingRepository.kt',
+        r'C:\Users\thoma\AndroidStudioProjects\History_Walk_I\app\src\main\java\com\history_walk\history_walk_i\ui\components\MapWithPathAndCircle.kt',
     r'C:\Users\thoma\AndroidStudioProjects\History_Walk_I\app\src\main\java\com\history_walk\history_walk_i\ui\components\SettingsButton.kt',
-    r'C:\Users\thoma\AndroidStudioProjects\History_Walk_I\app\src\main\java\com\history_walk\history_walk_i\ui\components\ZoomableImage.kt',
     r'C:\Users\thoma\AndroidStudioProjects\History_Walk_I\app\src\main\java\com\history_walk\history_walk_i\ui\screens\EmailVerificationScreen.kt',
     r'C:\Users\thoma\AndroidStudioProjects\History_Walk_I\app\src\main\java\com\history_walk\history_walk_i\ui\screens\EpisodeScreen.kt',
     r'C:\Users\thoma\AndroidStudioProjects\History_Walk_I\app\src\main\java\com\history_walk\history_walk_i\ui\screens\EpisodesScreen.kt',
