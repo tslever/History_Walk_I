@@ -21,12 +21,17 @@ import com.google.firebase.auth.PhoneMultiFactorGenerator
 import com.google.firebase.auth.PhoneMultiFactorInfo
 import com.google.firebase.firestore.FirebaseFirestore
 import com.history_walk.history_walk_i.billing.BillingRepository
+import com.history_walk.history_walk_i.extensions.await
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.lang.ref.WeakReference
 import java.util.concurrent.TimeUnit
 
 
-class ViewModelForHistoryWalkI (application: Application) : AndroidViewModel(application), BillingRepository.BillingListener {
+class ViewModelForHistoryWalkI (application: Application) :
+    AndroidViewModel(application),
+    BillingRepository.BillingListener {
 
     private var billingRepository: BillingRepository? = null
 
@@ -146,83 +151,100 @@ class ViewModelForHistoryWalkI (application: Application) : AndroidViewModel(app
 
 
     private fun fetchIndexOfPresentEpisode() {
-        val uid = firebaseAuth.currentUser?.uid
-        if (uid == null) {
-            Log.e("ViewModelForHistoryWalkI", "User is not authenticated.")
-            mutableLiveDataOfIndexOfPresentEpisode.postValue(1)
-            return
-        }
-        val userDataDoc = getUserDataDoc(uid)
-        userDataDoc.get()
-            .addOnSuccessListener { document ->
-                if (document != null && document.exists()) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val uid = firebaseAuth.currentUser?.uid
+            if (uid == null) {
+                Log.e("ViewModelForHistoryWalkI", "User is not authenticated.")
+                withContext(Dispatchers.Main) {
+                    mutableLiveDataOfIndexOfPresentEpisode.value = 1
+                }
+                return@launch
+            }
+            val userDataDoc = getUserDataDoc(uid)
+            try {
+                val document = userDataDoc.get().await()
+                if (document.exists()) {
                     val index = document.getLong("currentIndex")?.toInt() ?: 1
-                    mutableLiveDataOfIndexOfPresentEpisode.postValue(index)
+                    withContext(Dispatchers.Main) {
+                        mutableLiveDataOfIndexOfPresentEpisode.value = index
+                    }
                 } else {
-                    mutableLiveDataOfIndexOfPresentEpisode.postValue(1)
-                    userDataDoc.set(mapOf("currentIndex" to 1))
-                        .addOnFailureListener { e ->
-                            Log.e("ViewModelForHistoryWalkI", "Error initializing index: $e")
-                        }
+                    userDataDoc.set(mapOf("currentIndex" to 1)).await()
+                    withContext(Dispatchers.Main) {
+                        mutableLiveDataOfIndexOfPresentEpisode.value = 1
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("ViewModelForHistoryWalkI", "Error fetching index: $e")
+                withContext(Dispatchers.Main) {
+                    mutableLiveDataOfIndexOfPresentEpisode.value = 1
                 }
             }
-            .addOnFailureListener { e ->
-                Log.e("ViewModelForHistoryWalkI", "Error fetching index: $e")
-                mutableLiveDataOfIndexOfPresentEpisode.postValue(1)
-            }
+        }
     }
 
 
     private fun fetchIndicatorOfWhetherUserHasUpgraded() {
-        val uid = firebaseAuth.currentUser?.uid
-        if (uid == null) {
-            Log.e("ViewModelForHistoryWalkI", "User is not authenticated.")
-            mutableLiveDataOfIndicatorOfWhetherUserHasUpgraded.postValue(false)
-            return
-        }
-        val userDataDoc = getUserDataDoc(uid)
-        userDataDoc.get()
-            .addOnSuccessListener { document ->
-                if (document != null && document.exists()) {
-                    val premium = document.getBoolean("isPremium") ?: false
-                    mutableLiveDataOfIndicatorOfWhetherUserHasUpgraded.postValue(premium)
+        viewModelScope.launch(Dispatchers.IO) {
+            val uid = firebaseAuth.currentUser?.uid
+            if (uid == null) {
+                Log.e("ViewModelForHistoryWalkI", "User is not authenticated.")
+                withContext(Dispatchers.Main) {
+                    mutableLiveDataOfIndicatorOfWhetherUserHasUpgraded.value = false
+                }
+                return@launch
+            }
+            val userDataDoc = getUserDataDoc(uid)
+            try {
+                val documentSnapshot = userDataDoc.get().await()
+                if (documentSnapshot.exists()) {
+                    val premium = documentSnapshot.getBoolean("isPremium") ?: false
+                    withContext(Dispatchers.Main) {
+                        mutableLiveDataOfIndicatorOfWhetherUserHasUpgraded.value = premium
+                    }
                 } else {
-                    mutableLiveDataOfIndicatorOfWhetherUserHasUpgraded.postValue(false)
-                    userDataDoc.set(mapOf("isPremium" to false))
-                        .addOnFailureListener { e ->
-                            Log.e("ViewModelForHistoryWalkI", "Error initializing premium status: $e")
-                        }
+                    userDataDoc.set(mapOf("isPremium" to false)).await()
+                    withContext(Dispatchers.Main) {
+                        mutableLiveDataOfIndicatorOfWhetherUserHasUpgraded.value = false
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("ViewModelForHistoryWalkI", "Error fetching user data: $e")
+                withContext(Dispatchers.Main) {
+                    mutableLiveDataOfIndicatorOfWhetherUserHasUpgraded.value = false
                 }
             }
-            .addOnFailureListener { e ->
-                Log.e("ViewModelForHistoryWalkI", "Error fetching user data: $e")
-                mutableLiveDataOfIndicatorOfWhetherUserHasUpgraded.postValue(false)
-            }
+        }
     }
 
 
     private fun fetchPhoneNumberOfUser(onComplete: () -> Unit) {
-        val uid = firebaseAuth.currentUser?.uid ?: run {
-            Log.w("ViewModelForHistoryWalkI", "No user is logged in to fetch phone number.")
-            onComplete()
-            return
-        }
-        val userDataDoc = getUserDataDoc(uid)
-        userDataDoc
-            .get()
-            .addOnSuccessListener { document ->
-                if (document != null && document.exists()) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val uid = firebaseAuth.currentUser?.uid
+            if (uid == null) {
+                Log.w("ViewModelForHistoryWalkI", "No user is logged in to fetch phone number.")
+                withContext(Dispatchers.Main) {
+                    onComplete()
+                }
+                return@launch
+            }
+            val userDataDoc = getUserDataDoc(uid)
+            try {
+                val document = userDataDoc.get().await()
+                if (document.exists()) {
                     phoneNumberOfUser = document.getString("phoneNumber")
                     Log.d("ViewModelForHistoryWalkI", "Phone number fetched: $phoneNumberOfUser")
                 } else {
                     Log.w("ViewModelForHistoryWalkI", "No phone number found for user.")
                 }
-                onComplete()
-            }
-            .addOnFailureListener { e ->
+            } catch (e: Exception) {
                 Log.e("ViewModelForHistoryWalkI", "Error fetching phone number: $e")
-                onComplete()
+            } finally {
+                withContext(Dispatchers.Main) {
+                    onComplete()
+                }
             }
+        }
     }
 
 
@@ -258,7 +280,8 @@ class ViewModelForHistoryWalkI (application: Application) : AndroidViewModel(app
                     mutableLiveDataOfMfaVerified.postValue(true)
                     callback(null)
                 } else {
-                    val errorMsg = "finalizeSignInWithAssertion failed: " + (signInTask.exception?.message ?: "Unknown error")
+                    val errorMsg = "finalizeSignInWithAssertion failed: " +
+                            (signInTask.exception?.message ?: "Unknown error")
                     Log.e("ViewModelForHistoryWalkI", errorMsg)
                     callback(errorMsg)
                 }
@@ -333,6 +356,7 @@ class ViewModelForHistoryWalkI (application: Application) : AndroidViewModel(app
     private fun sendMfaSignInCode(session: MultiFactorSession) {
         val user = firebaseAuth.currentUser ?: run {
             Log.e("ViewModelForHistoryWalkI", "User is not authenticated.")
+            mutableLiveDataOfNotification.postValue("User is not authenticated.")
             return
         }
         val phoneNumber = phoneNumberOfUser
@@ -351,19 +375,15 @@ class ViewModelForHistoryWalkI (application: Application) : AndroidViewModel(app
             override fun onVerificationCompleted(credential: PhoneAuthCredential) {
                 Log.d("ViewModelForHistoryWalkI", "MFA sign-in verification completed automatically.")
                 resolveSignIn(credential) { success, error ->
-                    if (success) {
-                        // TODO
-                    } else {
-                        // TODO
+                    if (!success && error != null) {
+                        Log.e("ViewMOdelForHistoryWalkI", "Auto-verification error: $error")
                     }
                 }
             }
-
             override fun onVerificationFailed(e: FirebaseException) {
                 Log.e("ViewModelForHistoryWalkI", "MFA sign-in verification failed: ${e.message}")
                 mutableLiveDataOfNotification.postValue("MFA sign-in verification failed: ${e.message}")
             }
-
             override fun onCodeSent(verificationIdParam: String, token: PhoneAuthProvider.ForceResendingToken) {
                 super.onCodeSent(verificationIdParam, token)
                 Log.d("ViewModelForHistoryWalkI", "MFA sign-in verification code sent.")
@@ -464,13 +484,13 @@ class ViewModelForHistoryWalkI (application: Application) : AndroidViewModel(app
                     .setTimeout(60L, TimeUnit.SECONDS)
                     .setCallbacks(object : PhoneAuthProvider.OnVerificationStateChangedCallbacks() {
                         override fun onVerificationCompleted(credential: PhoneAuthCredential) {
-                            finalizeSignInWithAssertion(credential, callback)
+                            finalizeSignInWithAssertion(credential) { err ->
+                                callback(err)
+                            }
                         }
-
                         override fun onVerificationFailed(e: FirebaseException) {
                             callback("Second-factor verification failed: ${e.message}")
                         }
-
                         override fun onCodeSent(verificationId: String, token: PhoneAuthProvider.ForceResendingToken) {
                             verificationIdInternal = verificationId
                             mutableLiveDataOfVerificationId.postValue(verificationId)
@@ -551,24 +571,23 @@ class ViewModelForHistoryWalkI (application: Application) : AndroidViewModel(app
 
     fun setCurrentIndex(newIndex: Int) {
         mutableLiveDataOfIndexOfPresentEpisode.value = newIndex
-        val uid = firebaseAuth.currentUser?.uid
-        if (uid == null) {
+        val uid = firebaseAuth.currentUser?.uid ?: run {
             Log.e("ViewModelForHistoryWalkI", "User is not authenticated.")
             return
         }
-        val userDataDoc = getUserDataDoc(uid)
-        userDataDoc.update(mapOf("currentIndex" to newIndex))
-            .addOnSuccessListener {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                getUserDataDoc(uid).update("currentIndex", newIndex).await()
                 Log.d("ViewModelForHistoryWalkI", "Index updated to $newIndex")
-            }
-            .addOnFailureListener { e ->
+            } catch (e: Exception) {
                 Log.e("ViewModelForHistoryWalkI", "Error updating index: $e")
             }
+        }
     }
 
 
     fun setHasSeenHome() {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             sharedPref.edit().putBoolean("hasSeenHome", true).apply()
         }
     }
@@ -580,16 +599,20 @@ class ViewModelForHistoryWalkI (application: Application) : AndroidViewModel(app
             Log.e("ViewModelForHistoryWalkI", "User is not authenticated")
             return
         }
-        val userDataDoc = getUserDataDoc(uid)
-        userDataDoc.update("isPremium", status)
-            .addOnSuccessListener {
-                mutableLiveDataOfIndicatorOfWhetherUserHasUpgraded.postValue(status)
-                Log.d("ViewModelForHistoryWalkI", "Premium status set to $status")
-            }
-            .addOnFailureListener { e ->
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                getUserDataDoc(uid).update("isPremium", status).await()
+                withContext(Dispatchers.Main) {
+                    mutableLiveDataOfIndicatorOfWhetherUserHasUpgraded.value = status
+                }
+                Log.d("ViewModelForHistoryWalkI", "Premium statu set to $status")
+            } catch (e: Exception) {
                 Log.e("ViewModelForHistoryWalkI", "Error setting premium status: $e")
-                mutableLiveDataOfNotification.postValue("Error setting premium status: $e")
+                withContext(Dispatchers.Main) {
+                    mutableLiveDataOfNotification.value = "Error setting premium status: $e"
+                }
             }
+        }
     }
 
 
@@ -600,7 +623,11 @@ class ViewModelForHistoryWalkI (application: Application) : AndroidViewModel(app
     }
 
 
-    fun signIn(emailAddress: String, password: String, onResult: (Boolean, String?) -> Unit) {
+    fun signIn(
+        emailAddress: String,
+        password: String,
+        onResult: (Boolean, String?) -> Unit
+    ) {
         FirebaseAuth.getInstance()
             .signInWithEmailAndPassword(emailAddress, password)
             .addOnCompleteListener { task ->
@@ -622,8 +649,7 @@ class ViewModelForHistoryWalkI (application: Application) : AndroidViewModel(app
                             }
                         }
                     }
-                }
-                else {
+                } else {
                     val exception = task.exception
                     if (exception is FirebaseAuthMultiFactorException) {
                         val multiFactorResolver = exception.resolver
@@ -645,7 +671,10 @@ class ViewModelForHistoryWalkI (application: Application) : AndroidViewModel(app
                                 override fun onVerificationFailed(e: FirebaseException) {
                                     onResult(false, "MFA verification failed: ${e.message}")
                                 }
-                                override fun onCodeSent(verificationId: String, token: PhoneAuthProvider.ForceResendingToken) {
+                                override fun onCodeSent(
+                                    verificationId: String,
+                                    token: PhoneAuthProvider.ForceResendingToken
+                                ) {
                                     this@ViewModelForHistoryWalkI.multiFactorResolver = multiFactorResolver
                                     verificationIdInternal = verificationId
                                     mutableLiveDataOfVerificationId.value = verificationId
@@ -689,28 +718,37 @@ class ViewModelForHistoryWalkI (application: Application) : AndroidViewModel(app
                         user.sendEmailVerification()
                             .addOnCompleteListener { verifyTask ->
                                 if (verifyTask.isSuccessful) {
-                                    Log.d("ViewModelForHistoryWalkI", "Verification email sent to ${user.email}.")
-                                    val uid = user.uid
-                                    val userDataDoc = getUserDataDoc(uid)
-                                    userDataDoc.set(
-                                        mapOf(
-                                            "isPremium" to false,
-                                            "phoneNumber" to phoneNumber,
-                                            "currentIndex" to 1
-                                        )
+                                    Log.d(
+                                        "ViewModelForHistoryWalkI",
+                                        "Verification email sent to ${user.email}."
                                     )
-                                        .addOnSuccessListener {
-                                            Log.d("ViewModelForHistoryWalkI", "User data added to Firestore.")
-                                            mutableLiveDataOfIndexOfPresentEpisode.postValue(1)
-                                            phoneNumberOfUser = phoneNumber
-                                            onResult(true, "Sign-up successful. Please verify your email before enrolling MFA.")
-                                        }
-                                        .addOnFailureListener { e ->
+                                    val uid = user.uid
+                                    viewModelScope.launch(Dispatchers.IO) {
+                                        try {
+                                            getUserDataDoc(uid).set(
+                                                mapOf(
+                                                    "isPremium" to false,
+                                                    "phoneNumber" to phoneNumber,
+                                                    "currentIndex" to 1
+                                                )
+                                            ).await()
+                                            withContext(Dispatchers.Main) {
+                                                mutableLiveDataOfIndexOfPresentEpisode.value = 1
+                                                phoneNumberOfUser = phoneNumber
+                                                onResult(true, "Sign-up successful. Please verify your email before enrolling MFA.")
+                                            }
+                                        } catch (e: Exception) {
                                             Log.e("ViewModelForHistoryWalkI", "Error saving user data: $e")
-                                            onResult(true, "Sign-up successful but failed to save user data.")
+                                            withContext(Dispatchers.Main) {
+                                                onResult(true, "Sign-up successful but failed to save user data.")
+                                            }
                                         }
+                                    }
                                 } else {
-                                    Log.e("ViewModelForHistoryWalkI", "Failed to send verification email: ${verifyTask.exception?.message}")
+                                    Log.e(
+                                        "ViewModelForHistoryWalkI",
+                                        "Failed to send verification email: ${verifyTask.exception?.message}"
+                                    )
                                     onResult(false, "Failed to send verification email: ${verifyTask.exception?.message}")
                                 }
                             }
