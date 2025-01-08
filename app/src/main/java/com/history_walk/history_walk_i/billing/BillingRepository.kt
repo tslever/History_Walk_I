@@ -15,7 +15,9 @@ import com.android.billingclient.api.PurchasesUpdatedListener
 import com.android.billingclient.api.QueryProductDetailsParams
 import com.android.billingclient.api.QueryPurchasesParams
 import com.android.billingclient.api.queryProductDetails
+import com.google.firebase.firestore.DocumentReference
 import com.google.firebase.firestore.FirebaseFirestore
+import com.history_walk.history_walk_i.extensions.await
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -29,7 +31,7 @@ import kotlin.math.pow
 
 
 class BillingRepository(
-    private val context: Context,
+    context: Context,
     private val usersUid: String
 ) : PurchasesUpdatedListener {
 
@@ -61,7 +63,7 @@ class BillingRepository(
     private val productId = "consumable_premium_upgrade"
 
 
-    // Function acknowledgePurchase acknowledge a purchase.
+    // Function acknowledgePurchase acknowledges a purchase.
     private fun acknowledgePurchase(purchase: Purchase) {
         val acknowledgePurchaseParams = AcknowledgePurchaseParams.newBuilder()
             .setPurchaseToken(purchase.purchaseToken)
@@ -69,8 +71,10 @@ class BillingRepository(
         billingClient.acknowledgePurchase(acknowledgePurchaseParams) { billingResult ->
             if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
                 Log.i(TAG, "Purchase acknowledged successfully.")
-                associatePurchaseWithUser(purchase.purchaseToken)
-                consumePurchase(purchase)
+                coroutineScope.launch {
+                    associatePurchaseWithUserSusp()
+                    consumePurchase(purchase)
+                }
             } else {
                 Log.e(TAG, "Failed to acknowledge purchase: ${billingResult.responseCode}")
                 billingListener?.onNotifyUser("Failed to acknowledge purchase: ${billingResult.responseCode}")
@@ -79,49 +83,46 @@ class BillingRepository(
     }
 
 
-    private fun associatePurchaseWithUser(purchaseToken: String) {
-        val userDataDoc = firestore.collection("users").document(usersUid).collection("data").document("userData")
-        userDataDoc.update(
-            mapOf(
-                "isPremium" to true
-            )
-        )
-            .addOnSuccessListener {
-                Log.d(TAG, "Premium status updated in Firestore for user $usersUid")
+    private suspend fun associatePurchaseWithUserSusp() {
+        try {
+            getUserDataDoc(usersUid)
+                .update(mapOf("isPremium" to true))
+                .await()
+            Log.d(TAG, "Premium status updated in Firestore for user $usersUid")
+            withContext(Dispatchers.Main) {
                 billingListener?.onPurchaseSuccess()
             }
-            .addOnFailureListener { e ->
-                Log.e(TAG, "Error updating premium status: $e")
+        } catch (e: Exception) {
+            Log.e(TAG, "Error updating premium status: $e")
+            withContext(Dispatchers.Main) {
                 billingListener?.onNotifyUser("Error updating premium status: $e")
             }
+        }
     }
 
 
     // Function checkExistingPurchases checks existing purchases to restore premium status.
-    private fun checkExistingPurchases() {
-        val userDataDoc = firestore.collection("users").document(usersUid).collection("data").document("userData")
-        userDataDoc.get()
-            .addOnSuccessListener { document ->
-                if (document != null && document.exists()) {
-                    val isPremium = document.getBoolean("isPremium") ?: false
-                    if (isPremium) {
+    private suspend fun checkExistingPurchasesSusp() {
+        try {
+            val documentSnapshot = getUserDataDoc(usersUid).get().await()
+            if (documentSnapshot.exists()) {
+                val isPremium = documentSnapshot.getBoolean("isPremium") ?: false
+                if (isPremium) {
+                    withContext(Dispatchers.Main) {
                         billingListener?.onPurchaseSuccess()
-                    } else {
-                        Log.i(TAG, "User does not have premium status")
                     }
                 } else {
-                    Log.i(TAG, "User data document does not exist.")
+                    Log.i(TAG, "User does not have premium status.")
                 }
+            } else {
+                Log.i(TAG, "User data document does not exist.")
             }
-            .addOnFailureListener { e ->
-                Log.e(TAG, "Error fetching user data: $e")
+        } catch (e: Exception) {
+            Log.e(TAG, "Error fetching user data: $e")
+            withContext(Dispatchers.Main) {
                 billingListener?.onNotifyUser("Error fetching user data: $e")
             }
-    }
-
-
-    fun clearBillingListener() {
-        billingListener = null
+        }
     }
 
 
@@ -135,14 +136,11 @@ class BillingRepository(
                 Log.i(TAG, "Purchase consumed successfully: $purchaseToken")
             } else {
                 Log.e(TAG, "Failed to consume purchase: ${billingResult.responseCode}")
-                billingListener?.onNotifyUser("Failed to consume purchase: ${billingResult.responseCode}")
+                billingListener?.onNotifyUser(
+                    "Failed to consume purchase: ${billingResult.responseCode}"
+                )
             }
         }
-    }
-
-
-    fun dispose() {
-        endConnection()
     }
 
 
@@ -183,11 +181,18 @@ class BillingRepository(
             } else {
                 null
             }
-
             withContext(Dispatchers.Main) {
                 callback(productDetails)
             }
         }
+    }
+
+    
+    fun getUserDataDoc(uid: String): DocumentReference {
+        return firestore.collection("users")
+            .document(uid)
+            .collection("data")
+            .document("userData")
     }
 
 
@@ -198,13 +203,27 @@ class BillingRepository(
             indexOfRetry++
             if (indexOfRetry > maximumNumberOfRetries) {
                 Log.e(TAG, "Exceeded maximum retry attempts for BillingClient connection.")
-                billingListener?.onNotifyUser("Exceeded maximum retry attempts for BillingClient connection.")
+                withContext(Dispatchers.Main) {
+                    billingListener?.onNotifyUser(
+                        "Exceeded maximum retry attempts for BillingClient connection."
+                    )
+                }
                 return@launch
             }
 
-            val delayBeforeRetry = minOf(delayBeforeInitialRetry * (2.0.pow(indexOfRetry.toDouble())).toLong(), maximumDelay)
-            Log.i(TAG, "Retrying BillingClient connection in $delayBeforeRetry ms (Attempt $indexOfRetry)")
-            billingListener?.onNotifyUser("Retrying BillingClient connection in $delayBeforeInitialRetry ms (Attempt $indexOfRetry)")
+            val delayBeforeRetry = minOf(
+                delayBeforeInitialRetry * (2.0.pow(indexOfRetry.toDouble())).toLong(),
+                maximumDelay
+            )
+            Log.i(
+                TAG,
+                "Retrying BillingClient connection in $delayBeforeRetry ms (Attempt $indexOfRetry)"
+            )
+            withContext(Dispatchers.Main) {
+                billingListener?.onNotifyUser(
+                    "Retrying BillingClient connection in $delayBeforeInitialRetry ms (Attempt $indexOfRetry)"
+                )
+            }
             delay(delayBeforeRetry)
 
             mutex.withLock {
@@ -228,7 +247,6 @@ class BillingRepository(
     /* Function handleBillingSetupFinished handles different response codes and
        decides whether to retry the connection. */
     private fun handleBillingSetupFinished(billingResult: BillingResult) {
-
         /* Possible response codes:
         BILLING_UNAVAILABLE: 3
         DEVELOPER_ERROR: 5
@@ -248,9 +266,10 @@ class BillingRepository(
             BillingClient.BillingResponseCode.OK -> {
                 indexOfRetry = 0
                 Log.i(TAG, "BillingClient setup successful.")
-                checkExistingPurchases()
+                coroutineScope.launch {
+                    checkExistingPurchasesSusp()
+                }
             }
-
 
             BillingClient.BillingResponseCode.BILLING_UNAVAILABLE,
             BillingClient.BillingResponseCode.ITEM_UNAVAILABLE,
@@ -262,7 +281,9 @@ class BillingRepository(
                     TAG,
                     "Billing setup failed with irrecoverable response code: ${billingResult.responseCode}"
                 )
-                billingListener?.onNotifyUser("Billing setup failed with irrecoverable response code: ${billingResult.responseCode}")
+                billingListener?.onNotifyUser(
+                    "Billing setup failed with irrecoverable response code: ${billingResult.responseCode}"
+                )
             }
 
             BillingClient.BillingResponseCode.SERVICE_DISCONNECTED,
@@ -274,7 +295,9 @@ class BillingRepository(
                     TAG,
                     "Billing setup failed with recoverable response code: ${billingResult.responseCode}"
                 )
-                billingListener?.onNotifyUser("Billing setup failed with recoverable error code: ${billingResult.responseCode}")
+                billingListener?.onNotifyUser(
+                    "Billing setup failed with recoverable error code: ${billingResult.responseCode}"
+                )
                 handleBillingServiceDisconnected()
             }
 
@@ -283,7 +306,9 @@ class BillingRepository(
                     TAG,
                     "Billing setup failed with unknown response code: ${billingResult.responseCode}"
                 )
-                billingListener?.onNotifyUser("Billing setup failed with unknown error code: ${billingResult.responseCode}")
+                billingListener?.onNotifyUser(
+                    "Billing setup failed with unknown error code: ${billingResult.responseCode}"
+                )
                 handleBillingServiceDisconnected()
             }
         }
@@ -321,11 +346,9 @@ class BillingRepository(
                 val productDetailsParams = BillingFlowParams.ProductDetailsParams.newBuilder()
                     .setProductDetails(productDetails)
                     .build()
-
                 val billingFlowParams = BillingFlowParams.newBuilder()
                     .setProductDetailsParamsList(listOf(productDetailsParams))
                     .build()
-
                 billingClient.launchBillingFlow(activity, billingFlowParams)
             } else {
                 Log.e(
@@ -365,7 +388,9 @@ class BillingRepository(
                 "Purchase update failed with response code: ${billingResult.responseCode}"
             )
             billingListener?.onPurchaseFailure(billingResult.responseCode)
-            billingListener?.onNotifyUser("Purchase update failed with response code: ${billingResult.responseCode}")
+            billingListener?.onNotifyUser(
+                "Purchase update failed with response code: ${billingResult.responseCode}"
+            )
         }
     }
 
@@ -386,42 +411,47 @@ class BillingRepository(
                     delay(1000L)
                 }
             }
-
             val queryPurchasesParams = QueryPurchasesParams.newBuilder()
                 .setProductType(BillingClient.ProductType.INAPP)
                 .build()
-
             billingClient.queryPurchasesAsync(queryPurchasesParams) { billingResult, purchases ->
                 if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
                     purchases?.forEach { purchase ->
-                        if (purchase.products.contains(productId) && purchase.purchaseState == Purchase.PurchaseState.PURCHASED) {
+                        if (
+                            purchase.products.contains(productId) &&
+                            purchase.purchaseState == Purchase.PurchaseState.PURCHASED
+                            ) {
                             coroutineScope.launch {
-                                associatePurchaseIfNeeded(purchase)
+                                associatePurchaseIfNeededSusp(purchase)
                                 consumePurchase(purchase)
                             }
                         }
                     }
                 } else {
                     Log.e(TAG, "Error querying purchases: ${billingResult.responseCode}")
-                    billingListener?.onNotifyUser("Error restoring purchases: ${billingResult.responseCode}")
+                    billingListener?.onNotifyUser(
+                        "Error restoring purchases: ${billingResult.responseCode}"
+                    )
                 }
             }
         }
     }
 
 
-    private suspend fun associatePurchaseIfNeeded(purchase: Purchase) {
-        withContext(Dispatchers.IO) {
-            val userDataDoc = firestore.collection("users").document(usersUid).collection("data").document("userData")
-            userDataDoc.get().addOnSuccessListener { document ->
-                val isPremium = document.getBoolean("isPremium") ?: false
-                if (!isPremium) {
+    private suspend fun associatePurchaseIfNeededSusp(purchase: Purchase) {
+        try {
+            val docSnapshot = getUserDataDoc(usersUid).get().await()
+            val isPremium = docSnapshot.getBoolean("isPremium") ?: false
+            if (!isPremium) {
+                withContext(Dispatchers.Main) {
                     acknowledgePurchase(purchase)
-                } else {
-                    Log.i(TAG, "User already has premium status.")
                 }
-            }.addOnFailureListener { e ->
-                Log.e(TAG, "Error fetching user data: $e")
+            } else {
+                Log.i(TAG, "User already has premium status.")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error restoring purchase: $e")
+            withContext(Dispatchers.Main) {
                 billingListener?.onNotifyUser("Error restoring purchases: $e")
             }
         }

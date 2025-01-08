@@ -152,7 +152,7 @@ class ViewModelForHistoryWalkI (application: Application) : AndroidViewModel(app
             mutableLiveDataOfIndexOfPresentEpisode.postValue(1)
             return
         }
-        val userDataDoc = firebaseFirestore.collection("users").document(uid).collection("data").document("userData")
+        val userDataDoc = getUserDataDoc(uid)
         userDataDoc.get()
             .addOnSuccessListener { document ->
                 if (document != null && document.exists()) {
@@ -180,7 +180,7 @@ class ViewModelForHistoryWalkI (application: Application) : AndroidViewModel(app
             mutableLiveDataOfIndicatorOfWhetherUserHasUpgraded.postValue(false)
             return
         }
-        val userDataDoc = firebaseFirestore.collection("users").document(uid).collection("data").document("userData")
+        val userDataDoc = getUserDataDoc(uid)
         userDataDoc.get()
             .addOnSuccessListener { document ->
                 if (document != null && document.exists()) {
@@ -207,7 +207,7 @@ class ViewModelForHistoryWalkI (application: Application) : AndroidViewModel(app
             onComplete()
             return
         }
-        val userDataDoc = firebaseFirestore.collection("users").document(uid).collection("data").document("userData")
+        val userDataDoc = getUserDataDoc(uid)
         userDataDoc
             .get()
             .addOnSuccessListener { document ->
@@ -269,6 +269,13 @@ class ViewModelForHistoryWalkI (application: Application) : AndroidViewModel(app
     fun getSelectedNumberOfSteps(): Int {
         return sharedPref.getInt("selectedNumberOfSteps", 70_000)
     }
+
+
+    private fun getUserDataDoc(uid: String) =
+        firebaseFirestore.collection("users")
+            .document(uid)
+            .collection("data")
+            .document("userData")
 
 
     fun hasSeenHome(): Boolean {
@@ -549,7 +556,7 @@ class ViewModelForHistoryWalkI (application: Application) : AndroidViewModel(app
             Log.e("ViewModelForHistoryWalkI", "User is not authenticated.")
             return
         }
-        val userDataDoc = firebaseFirestore.collection("users").document(uid).collection("data").document("userData")
+        val userDataDoc = getUserDataDoc(uid)
         userDataDoc.update(mapOf("currentIndex" to newIndex))
             .addOnSuccessListener {
                 Log.d("ViewModelForHistoryWalkI", "Index updated to $newIndex")
@@ -573,7 +580,7 @@ class ViewModelForHistoryWalkI (application: Application) : AndroidViewModel(app
             Log.e("ViewModelForHistoryWalkI", "User is not authenticated")
             return
         }
-        val userDataDoc = firebaseFirestore.collection("users").document(uid).collection("data").document("userData")
+        val userDataDoc = getUserDataDoc(uid)
         userDataDoc.update("isPremium", status)
             .addOnSuccessListener {
                 mutableLiveDataOfIndicatorOfWhetherUserHasUpgraded.postValue(status)
@@ -684,7 +691,7 @@ class ViewModelForHistoryWalkI (application: Application) : AndroidViewModel(app
                                 if (verifyTask.isSuccessful) {
                                     Log.d("ViewModelForHistoryWalkI", "Verification email sent to ${user.email}.")
                                     val uid = user.uid
-                                    val userDataDoc = firebaseFirestore.collection("users").document(uid).collection("data").document("userData")
+                                    val userDataDoc = getUserDataDoc(uid)
                                     userDataDoc.set(
                                         mapOf(
                                             "isPremium" to false,
