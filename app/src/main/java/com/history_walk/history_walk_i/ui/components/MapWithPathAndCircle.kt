@@ -41,7 +41,7 @@ fun MapWithPathAndCircle(episodeId: Int) {
 
     var painterResource: Painter = painterResource(id = R.drawable.placeholder)
     if (episodeId == 1) {
-        painterResource(id = R.drawable.the_alhambra)
+        painterResource = painterResource(id = R.drawable.the_alhambra)
     }
     val intrinsicSize = painterResource.intrinsicSize
     val aspectRatio = intrinsicSize.width / intrinsicSize.height
