@@ -19,6 +19,7 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -27,34 +28,39 @@ import com.history_walk.history_walk_i.R
 import kotlin.math.sqrt
 
 @Composable
-fun MapWithPathAndCircle(modifier: Modifier) {
+fun MapWithPathAndCircle(episodeId: Int) {
 
     val context = LocalContext.current
-    var originalPathPoints by remember { mutableStateOf<List<PathPoint>?>(null) }
-    LaunchedEffect(Unit) {
-        originalPathPoints = loadPathPoints(context, R.raw.points_of_path_of_the_alhambra)
-    }
-    if (originalPathPoints == null) {
-        Box(modifier.fillMaxSize())
-        return
-    }
-    val pathPoints = originalPathPoints!!.map { Offset(it.x, it.y) }
-
     val fraction = 10_000f / 70_000f
-    val minScale = 1f
     val maxScale = 5f
-
-    var scale by remember { mutableStateOf(1f) }
+    val minScale = 1f
+    val modifier = Modifier.fillMaxSize()
     var offset by remember { mutableStateOf(Offset.Zero) }
+    var scale by remember { mutableStateOf(1f) }
 
-    val alhambraPainter = painterResource(id = R.drawable.the_alhambra)
-    val intrinsicSize = alhambraPainter.intrinsicSize
-    val imageAspectRatio = intrinsicSize.width / intrinsicSize.height
+
+    var painterResource: Painter = painterResource(id = R.drawable.placeholder)
+    if (episodeId == 1) {
+        painterResource(id = R.drawable.the_alhambra)
+    }
+    val intrinsicSize = painterResource.intrinsicSize
+    val aspectRatio = intrinsicSize.width / intrinsicSize.height
+
+
+    val pathPoint = PathPoint(0f, 0f)
+    val listOfPathPoint: List<PathPoint> = listOf(pathPoint)
+    var listOfPathPoints by remember { mutableStateOf(listOfPathPoint) }
+    LaunchedEffect(Unit) {
+        if (episodeId == 1) {
+            listOfPathPoints = loadPathPoints(context, R.raw.points_of_path_of_the_alhambra)
+        }
+    }
+    val listOfOffsets = listOfPathPoints.map { Offset(it.x, it.y) }
+
 
     Box(
         modifier = modifier
-            .fillMaxSize()
-            .aspectRatio(imageAspectRatio)
+            .aspectRatio(aspectRatio)
             .pointerInput(Unit) {
                 detectTransformGestures { _, pan, zoom, _ ->
                     val newScale = (scale * zoom).coerceIn(minScale, maxScale)
@@ -66,8 +72,8 @@ fun MapWithPathAndCircle(modifier: Modifier) {
             }
     ) {
         Image(
-            painter = alhambraPainter,
-            contentDescription = "The Alhambra Map",
+            painter = painterResource,
+            contentDescription = "map",
             modifier = Modifier
                 .matchParentSize()
                 .graphicsLayer(
@@ -90,7 +96,7 @@ fun MapWithPathAndCircle(modifier: Modifier) {
         ) {
             val scaleFactorX = size.width / intrinsicSize.width
             val scaleFactorY = size.height / intrinsicSize.height
-            val scaledPathPoints = pathPoints.map { pt ->
+            val scaledPathPoints = listOfOffsets.map { pt ->
                 Offset(
                     x = pt.x * scaleFactorX,
                     y = pt.y * scaleFactorY
@@ -137,6 +143,7 @@ fun MapWithPathAndCircle(modifier: Modifier) {
         }
     }
 }
+
 
 private fun Offset.getDistance(): Float {
     return sqrt(this.x * this.x + this.y * this.y)
