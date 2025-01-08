@@ -335,24 +335,6 @@ class ViewModelForHistoryWalkI (application: Application) :
     }
 
 
-    private fun initiateMfaSignIn() {
-        viewModelScope.launch {
-            try {
-                val mfaSession = multiFactorResolver?.getSession()
-                if (mfaSession != null) {
-                    sendMfaSignInCode(mfaSession)
-                } else {
-                    Log.e("ViewModelForHistoryWalkI", "Failed to get MFA sign-in session.")
-                    mutableLiveDataOfNotification.postValue("Failed to initiate MFA sign-in.")
-                }
-            } catch (e: Exception) {
-                Log.e("ViewModelForHistoryWalkI", "Failed to get MFA sign-in session: ${e.message}")
-                mutableLiveDataOfNotification.postValue("Failed to initiate MFA sign-in: ${e.message}")
-            }
-        }
-    }
-
-
     private fun sendMfaSignInCode(session: MultiFactorSession) {
         val user = firebaseAuth.currentUser ?: run {
             Log.e("ViewModelForHistoryWalkI", "User is not authenticated.")

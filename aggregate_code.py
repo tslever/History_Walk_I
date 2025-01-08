@@ -8,6 +8,7 @@ base_path = r'C:\Users\thoma\AndroidStudioProjects\History_Walk_I'
 file_paths = [
     r'app\src\main\AndroidManifest.xml',
     r'app\src\main\java\com\history_walk\history_walk_i\billing\BillingRepository.kt',
+    r'app\src\main\java\com\history_walk\history_walk_i\extensions\TasksExt.kt',
     r'app\src\main\java\com\history_walk\history_walk_i\ui\components\MapWithPathAndCircle.kt',
     r'app\src\main\java\com\history_walk\history_walk_i\ui\components\PathPoint.kt',
     r'app\src\main\java\com\history_walk\history_walk_i\ui\components\PathPointsLoader.kt',

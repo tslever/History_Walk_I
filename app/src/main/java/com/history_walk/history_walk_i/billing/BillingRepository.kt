@@ -76,8 +76,9 @@ class BillingRepository(
                     consumePurchase(purchase)
                 }
             } else {
-                Log.e(TAG, "Failed to acknowledge purchase: ${billingResult.responseCode}")
-                billingListener?.onNotifyUser("Failed to acknowledge purchase: ${billingResult.responseCode}")
+                val msg = "Failed to acknowledge purchase: ${billingResult.responseCode}"
+                Log.e(TAG, msg)
+                billingListener?.onNotifyUser(msg)
             }
         }
     }
@@ -93,9 +94,10 @@ class BillingRepository(
                 billingListener?.onPurchaseSuccess()
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Error updating premium status: $e")
+            val msg = "Error updating premium status: $e"
+            Log.e(TAG, msg)
             withContext(Dispatchers.Main) {
-                billingListener?.onNotifyUser("Error updating premium status: $e")
+                billingListener?.onNotifyUser(msg)
             }
         }
     }
@@ -118,9 +120,52 @@ class BillingRepository(
                 Log.i(TAG, "User data document does not exist.")
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Error fetching user data: $e")
+            val msg = "Error fetching user data: $e"
+            Log.e(TAG, msg)
             withContext(Dispatchers.Main) {
-                billingListener?.onNotifyUser("Error fetching user data: $e")
+                billingListener?.onNotifyUser(msg)
+            }
+        }
+    }
+
+
+    private fun connectToBillingClient(forceRetry: Boolean) {
+        coroutineScope.launch {
+            if (forceRetry) { indexOfRetry++ }
+            if (indexOfRetry > maximumNumberOfRetries) {
+                val msg = "Exceeded maximum retry attempts for BillingClient connection."
+                Log.e(TAG, msg)
+                withContext(Dispatchers.Main) {
+                    billingListener?.onNotifyUser(msg)
+                }
+                return@launch
+            }
+            if (forceRetry) {
+                val delayBeforeRetry = minOf(
+                    delayBeforeInitialRetry * (2.0.pow(indexOfRetry.toDouble())).toLong(),
+                    maximumDelay
+                )
+                Log.i(TAG, "Retrying BillingClient connection in $delayBeforeRetry ms (Attempt $indexOfRetry)")
+                withContext(Dispatchers.Main) {
+                    billingListener?.onNotifyUser("Retrying BillingClient connection in $delayBeforeRetry ms (Attempt $indexOfRetry)")
+                }
+                delay(delayBeforeRetry)
+            }
+            mutex.withLock {
+                if (!billingClient.isReady) {
+                    billingClient.startConnection(
+                        object : BillingClientStateListener {
+                            override fun onBillingServiceDisconnected() {
+                                connectToBillingClient(forceRetry = true)
+                            }
+                            override fun onBillingSetupFinished(billingResult: BillingResult) {
+                                handleBillingSetupFinished(billingResult)
+                            }
+                        }
+                    )
+                } else {
+                    indexOfRetry = 0
+                }
             }
         }
     }
@@ -135,10 +180,9 @@ class BillingRepository(
             if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
                 Log.i(TAG, "Purchase consumed successfully: $purchaseToken")
             } else {
-                Log.e(TAG, "Failed to consume purchase: ${billingResult.responseCode}")
-                billingListener?.onNotifyUser(
-                    "Failed to consume purchase: ${billingResult.responseCode}"
-                )
+                val msg = "Failed to consume purchase: ${billingResult.responseCode}"
+                Log.e(TAG, msg)
+                billingListener?.onNotifyUser(msg)
             }
         }
     }
@@ -159,10 +203,18 @@ class BillingRepository(
     }
 
 
+    private suspend fun ensureBillingClientConnected() {
+        mutex.withLock {
+            if (!billingClient.isReady) {
+                connectToBillingClient(forceRetry = false)
+            }
+        }
+        delay(1_000L)
+    }
+
+
     // Function getProductDetails gets product details.
-    private fun getProductDetails(
-        callback: (ProductDetails?) -> Unit
-    ) {
+    private fun getProductDetails(callback: (ProductDetails?) -> Unit) {
         val product = listOf(
             QueryProductDetailsParams.Product.newBuilder()
                 .setProductId(productId)
@@ -176,11 +228,10 @@ class BillingRepository(
 
         coroutineScope.launch {
             val productDetailsResult = billingClient.queryProductDetails(queryProductDetailsParams)
-            val productDetails = if (productDetailsResult.billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
-                productDetailsResult.productDetailsList?.firstOrNull()
-            } else {
-                null
-            }
+            val productDetails =
+                if (productDetailsResult.billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
+                    productDetailsResult.productDetailsList?.firstOrNull()
+                } else { null }
             withContext(Dispatchers.Main) {
                 callback(productDetails)
             }
@@ -277,13 +328,9 @@ class BillingRepository(
             BillingClient.BillingResponseCode.DEVELOPER_ERROR,
             BillingClient.BillingResponseCode.ITEM_ALREADY_OWNED,
             BillingClient.BillingResponseCode.ITEM_NOT_OWNED -> {
-                Log.e(
-                    TAG,
-                    "Billing setup failed with irrecoverable response code: ${billingResult.responseCode}"
-                )
-                billingListener?.onNotifyUser(
-                    "Billing setup failed with irrecoverable response code: ${billingResult.responseCode}"
-                )
+                val msg = "Billing setup failed with irrecoverable response code: ${billingResult.responseCode}"
+                Log.e(TAG, msg)
+                billingListener?.onNotifyUser(msg)
             }
 
             BillingClient.BillingResponseCode.SERVICE_DISCONNECTED,
@@ -291,25 +338,16 @@ class BillingRepository(
             BillingClient.BillingResponseCode.SERVICE_UNAVAILABLE,
             BillingClient.BillingResponseCode.ERROR,
             BillingClient.BillingResponseCode.NETWORK_ERROR -> {
-                Log.e(
-                    TAG,
-                    "Billing setup failed with recoverable response code: ${billingResult.responseCode}"
-                )
-                billingListener?.onNotifyUser(
-                    "Billing setup failed with recoverable error code: ${billingResult.responseCode}"
-                )
-                handleBillingServiceDisconnected()
+                val msg = "Billing setup failed with recoverable response code: ${billingResult.responseCode}"
+                Log.e(TAG, msg)
+                billingListener?.onNotifyUser(msg)
+                connectToBillingClient(forceRetry = true)
             }
-
             else -> {
-                Log.e(
-                    TAG,
-                    "Billing setup failed with unknown response code: ${billingResult.responseCode}"
-                )
-                billingListener?.onNotifyUser(
-                    "Billing setup failed with unknown error code: ${billingResult.responseCode}"
-                )
-                handleBillingServiceDisconnected()
+                val msg = "Billing setup failed with unknown response code: ${billingResult.responseCode}"
+                Log.e(TAG, msg)
+                billingListener?.onNotifyUser(msg)
+                connectToBillingClient(forceRetry = true)
             }
         }
     }
@@ -351,11 +389,9 @@ class BillingRepository(
                     .build()
                 billingClient.launchBillingFlow(activity, billingFlowParams)
             } else {
-                Log.e(
-                    TAG,
-                    "Product details not found for Product ID: $productId"
-                )
-                billingListener?.onNotifyUser("Product details not found for Product ID: $productId")
+                val msg = "Product details not found for Product ID: $productId"
+                Log.e(TAG, msg)
+                billingListener?.onNotifyUser(msg)
             }
         }
     }
@@ -372,46 +408,26 @@ class BillingRepository(
                 handlePurchase(purchase)
             }
         } else if (billingResult.responseCode == BillingClient.BillingResponseCode.USER_CANCELED) {
-            Log.i(
-                TAG,
-                "User canceled the purchase."
-            )
+            Log.i(TAG, "User canceled the purchase.")
             billingListener?.onNotifyUser("You canceled your purchase.")
         } else if (billingResult.responseCode == BillingClient.BillingResponseCode.ITEM_ALREADY_OWNED) {
             Log.i(TAG, "User already owns this item.")
             billingListener?.onNotifyUser("You already own this item.")
             restorePurchases()
-        }
-        else {
-            Log.e(
-                TAG,
-                "Purchase update failed with response code: ${billingResult.responseCode}"
-            )
+        } else {
+            val msg = "Purchase update failed with response code: ${billingResult.responseCode}"
+            Log.e(TAG, msg)
             billingListener?.onPurchaseFailure(billingResult.responseCode)
-            billingListener?.onNotifyUser(
-                "Purchase update failed with response code: ${billingResult.responseCode}"
-            )
+            billingListener?.onNotifyUser(msg)
         }
     }
 
 
     fun restorePurchases() {
         coroutineScope.launch {
-            mutex.withLock {
-                if (!billingClient.isReady) {
-                    billingClient.startConnection(object : BillingClientStateListener {
-                        override fun onBillingServiceDisconnected() {
-                            handleBillingServiceDisconnected()
-                        }
-
-                        override fun onBillingSetupFinished(billingResult: BillingResult) {
-                            handleBillingSetupFinished(billingResult)
-                        }
-                    })
-                    delay(1000L)
-                }
-            }
-            val queryPurchasesParams = QueryPurchasesParams.newBuilder()
+            ensureBillingClientConnected()
+            val queryPurchasesParams = QueryPurchasesParams
+                .newBuilder()
                 .setProductType(BillingClient.ProductType.INAPP)
                 .build()
             billingClient.queryPurchasesAsync(queryPurchasesParams) { billingResult, purchases ->
@@ -428,10 +444,9 @@ class BillingRepository(
                         }
                     }
                 } else {
-                    Log.e(TAG, "Error querying purchases: ${billingResult.responseCode}")
-                    billingListener?.onNotifyUser(
-                        "Error restoring purchases: ${billingResult.responseCode}"
-                    )
+                    val msg = "Error restoring purchases: ${billingResult.responseCode}"
+                    Log.e(TAG, msg)
+                    billingListener?.onNotifyUser(msg)
                 }
             }
         }
@@ -450,9 +465,10 @@ class BillingRepository(
                 Log.i(TAG, "User already has premium status.")
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Error restoring purchase: $e")
+            val msg = "Error restoring purchase: $e"
+            Log.e(TAG, msg)
             withContext(Dispatchers.Main) {
-                billingListener?.onNotifyUser("Error restoring purchases: $e")
+                billingListener?.onNotifyUser(msg)
             }
         }
     }
@@ -465,21 +481,6 @@ class BillingRepository(
 
     // Function startBillingConnection is called by an object of type ViewModelForHistoryWalkI.
     fun startBillingConnection() {
-        coroutineScope.launch {
-            mutex.withLock {
-                if (!billingClient.isReady) {
-                    billingClient.startConnection(
-                        object : BillingClientStateListener {
-                            override fun onBillingServiceDisconnected() {
-                                handleBillingServiceDisconnected()
-                            }
-                            override fun onBillingSetupFinished(billingResult: BillingResult) {
-                                handleBillingSetupFinished(billingResult)
-                            }
-                        }
-                    )
-                }
-            }
-        }
+        connectToBillingClient(forceRetry = false)
     }
 }
