@@ -9,6 +9,7 @@ coreKtx = "1.15.0"
 junit = "4.13.2"
 junitVersion = "1.2.1"
 espressoCore = "3.6.1"
+kotlinxSerializationJson = "1.7.3"
 libphonenumber = "8.12.52"
 libphonenumberVersion = "8.13.52"
 lifecycleRuntimeKtx = "2.8.7"
@@ -49,6 +50,7 @@ androidx-documentfile = { group = "androidx.documentfile", name = "documentfile"
 androidx-runtime-livedata = { group = "androidx.compose.runtime", name = "runtime-livedata", version.ref = "runtimeLivedata" }
 firebase-firestore-ktx = { group = "com.google.firebase", name = "firebase-firestore-ktx", version.ref = "firebaseFirestoreKtx" }
 firebase-auth-ktx = { group = "com.google.firebase", name = "firebase-auth-ktx", version.ref = "firebaseAuthKtx" }
+kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinxSerializationJson" }
 libphonenumber = { module = "com.google.libphonenumber:libphonenumber", version.ref = "libphonenumber" }
 androidx-room-compiler-processing-testing = { group = "androidx.room", name = "room-compiler-processing-testing", version.ref = "roomCompilerProcessingTesting" }
 libphonenumber-v81352 = { module = "com.googlecode.libphonenumber:libphonenumber", version.ref = "libphonenumberVersion" }
