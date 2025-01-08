@@ -32,7 +32,7 @@ fun MapWithPathAndCircle(episodeId: Int) {
 
     val context = LocalContext.current
     val fraction = 10_000f / 70_000f
-    val maxScale = 5f
+    val maxScale = 10f
     val minScale = 1f
     val modifier = Modifier.fillMaxSize()
     var offset by remember { mutableStateOf(Offset.Zero) }
