@@ -22,13 +22,4 @@ fun EpisodeScreen(
     } else {
         // TODO
     }
-
-    Button(
-        onClick = {
-            viewModel.incrementEpisodeIndex()
-            onEpisodeCompleted()
-        }
-    ) {
-        Text(text = "Complete")
-    }
 }
