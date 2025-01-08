@@ -3,7 +3,7 @@ package com.history_walk.history_walk_i.ui.components
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.gestures.detectTransformGestures
-import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
@@ -31,35 +31,40 @@ import kotlin.math.sqrt
 fun MapWithPathAndCircle(episodeId: Int) {
 
     val context = LocalContext.current
-    val fraction = 10_000f / 70_000f
+    val fraction = 20_000f / 70_000f
     val maxScale = 10f
     val minScale = 1f
-    val modifier = Modifier.fillMaxSize()
     var offset by remember { mutableStateOf(Offset.Zero) }
     var scale by remember { mutableStateOf(1f) }
 
 
-    var painterResource: Painter = painterResource(id = R.drawable.placeholder)
-    if (episodeId == 1) {
-        painterResource = painterResource(id = R.drawable.the_alhambra)
+    var mapResourceId = remember(episodeId) {
+        if (episodeId == 1) { R.drawable.the_alhambra }
+        else { R.drawable.placeholder }
     }
-    val intrinsicSize = painterResource.intrinsicSize
-    val aspectRatio = intrinsicSize.width / intrinsicSize.height
+    var painter: Painter = painterResource(id = mapResourceId)
+    val intrinsicSize = painter.intrinsicSize
+    val aspectRatio = if (intrinsicSize.height != 0f) {
+        intrinsicSize.width / intrinsicSize.height
+    } else { 1f }
 
 
-    val pathPoint = PathPoint(0f, 0f)
-    val listOfPathPoint: List<PathPoint> = listOf(pathPoint)
-    var listOfPathPoints by remember { mutableStateOf(listOfPathPoint) }
-    LaunchedEffect(Unit) {
-        if (episodeId == 1) {
-            listOfPathPoints = loadPathPoints(context, R.raw.points_of_path_of_the_alhambra)
+    var pathPoints by remember { mutableStateOf(emptyList<PathPoint>()) }
+    LaunchedEffect(episodeId) {
+        pathPoints = if (episodeId == 1) {
+            loadPathPoints(context, R.raw.points_of_path_of_the_alhambra)
+        } else {
+            emptyList()
         }
     }
-    val listOfOffsets = listOfPathPoints.map { Offset(it.x, it.y) }
+    val listOfOffsets = remember(pathPoints) {
+        pathPoints.map { Offset(it.x, it.y) }
+    }
 
 
-    Box(
-        modifier = modifier
+    BoxWithConstraints(
+        modifier = Modifier
+            .fillMaxSize()
             .aspectRatio(aspectRatio)
             .pointerInput(Unit) {
                 detectTransformGestures { _, pan, zoom, _ ->
@@ -71,8 +76,48 @@ fun MapWithPathAndCircle(episodeId: Int) {
                 }
             }
     ) {
+        val containerWidth = constraints.maxWidth.toFloat()
+        val containerHeight = constraints.maxHeight.toFloat()
+        val scaleFactorX = containerWidth / intrinsicSize.width
+        val scaleFactorY = containerHeight / intrinsicSize.height
+        val scaledPathPoints = remember(listOfOffsets, scaleFactorX, scaleFactorY) {
+            listOfOffsets.map { pt ->
+                Offset(pt.x * scaleFactorX, pt.y * scaleFactorY)
+            }
+        }
+        val path = remember(scaledPathPoints) {
+            Path().apply {
+                if (scaledPathPoints.isNotEmpty()) {
+                    moveTo(scaledPathPoints[0].x, scaledPathPoints[0].y)
+                    for (i in 1 until scaledPathPoints.size) {
+                        lineTo(scaledPathPoints[i].x, scaledPathPoints[i].y)
+                    }
+                }
+            }
+        }
+        val totalDistance = scaledPathPoints
+            .zipWithNext { p1, p2 -> (p2 - p1).getDistance() }
+            .sum()
+        val distanceAlongPath = fraction * totalDistance
+        var distanceAccum = 0f
+        var circleCenter = scaledPathPoints.firstOrNull() ?: Offset.Zero
+        for (i in 0 until scaledPathPoints.lastIndex) {
+            val p1 = scaledPathPoints[i]
+            val p2 = scaledPathPoints[i + 1]
+            val segmentLength = (p2 - p1).getDistance()
+            if (distanceAccum + segmentLength >= distanceAlongPath) {
+                val remaining = distanceAlongPath - distanceAccum
+                val t = remaining / segmentLength
+                circleCenter = Offset(
+                    x = p1.x + t * (p2.x - p1.x),
+                    y = p1.y + t * (p2.y - p1.y)
+                )
+                break
+            }
+            distanceAccum += segmentLength
+        }
         Image(
-            painter = painterResource,
+            painter = painter,
             contentDescription = "map",
             modifier = Modifier
                 .matchParentSize()
@@ -94,20 +139,6 @@ fun MapWithPathAndCircle(episodeId: Int) {
                     translationY = offset.y
                 )
         ) {
-            val scaleFactorX = size.width / intrinsicSize.width
-            val scaleFactorY = size.height / intrinsicSize.height
-            val scaledPathPoints = listOfOffsets.map { pt ->
-                Offset(
-                    x = pt.x * scaleFactorX,
-                    y = pt.y * scaleFactorY
-                )
-            }
-            val path = Path().apply {
-                moveTo(scaledPathPoints[0].x, scaledPathPoints[0].y)
-                for (i in 1 until scaledPathPoints.size) {
-                    lineTo(scaledPathPoints[i].x, scaledPathPoints[i].y)
-                }
-            }
             drawPath(
                 path = path,
                 color = Color.Red,
@@ -116,25 +147,6 @@ fun MapWithPathAndCircle(episodeId: Int) {
                     cap = StrokeCap.Round
                 )
             )
-            val totalDistance = scaledPathPoints.zipWithNext { p1, p2 -> (p2 - p1).getDistance() }.sum()
-            val distanceAlongPath = fraction * totalDistance
-            var distanceAccum = 0f
-            var circleCenter = scaledPathPoints.first()
-            for (i in 0 until scaledPathPoints.lastIndex) {
-                val p1 = scaledPathPoints[i]
-                val p2 = scaledPathPoints[i + 1]
-                val segmentLength = (p2 - p1).getDistance()
-                if (distanceAccum + segmentLength >= distanceAlongPath) {
-                    val remaining = distanceAlongPath - distanceAccum
-                    val t = remaining / segmentLength
-                    circleCenter = Offset(
-                        x = p1.x + t * (p2.x - p1.x),
-                        y = p1.y + t * (p2.y - p1.y)
-                    )
-                    break
-                }
-                distanceAccum += segmentLength
-            }
             drawCircle(
                 color = Color.Blue,
                 radius = 12f,
@@ -142,9 +154,4 @@ fun MapWithPathAndCircle(episodeId: Int) {
             )
         }
     }
-}
-
-
-private fun Offset.getDistance(): Float {
-    return sqrt(this.x * this.x + this.y * this.y)
 }
