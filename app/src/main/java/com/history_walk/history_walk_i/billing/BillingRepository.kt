@@ -329,8 +329,7 @@ class BillingRepository(
             BillingClient.BillingResponseCode.ITEM_ALREADY_OWNED,
             BillingClient.BillingResponseCode.ITEM_NOT_OWNED -> {
                 val msg = "Billing setup failed with irrecoverable response code: ${billingResult.responseCode}"
-                Log.e(TAG, msg)
-                billingListener?.onNotifyUser(msg)
+                notifyOfError(msg)
             }
 
             BillingClient.BillingResponseCode.SERVICE_DISCONNECTED,
@@ -339,14 +338,12 @@ class BillingRepository(
             BillingClient.BillingResponseCode.ERROR,
             BillingClient.BillingResponseCode.NETWORK_ERROR -> {
                 val msg = "Billing setup failed with recoverable response code: ${billingResult.responseCode}"
-                Log.e(TAG, msg)
-                billingListener?.onNotifyUser(msg)
+                notifyOfError(msg)
                 connectToBillingClient(forceRetry = true)
             }
             else -> {
                 val msg = "Billing setup failed with unknown response code: ${billingResult.responseCode}"
-                Log.e(TAG, msg)
-                billingListener?.onNotifyUser(msg)
+                notifyOfError(msg)
                 connectToBillingClient(forceRetry = true)
             }
         }
@@ -394,6 +391,12 @@ class BillingRepository(
                 billingListener?.onNotifyUser(msg)
             }
         }
+    }
+
+
+    private fun notifyOfError(message: String) {
+        Log.e(TAG, message)
+        billingListener?.onNotifyUser(message)
     }
 
 
