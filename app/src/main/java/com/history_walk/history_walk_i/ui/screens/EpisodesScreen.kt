@@ -42,6 +42,8 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.history_walk.history_walk_i.R
+import com.history_walk.history_walk_i.ui.theme.GoldenYellow
+import com.history_walk.history_walk_i.ui.theme.TransparentGrey
 import com.history_walk.history_walk_i.viewmodel.ViewModelForHistoryWalkI
 import kotlinx.coroutines.launch
 
@@ -74,16 +76,20 @@ fun EpisodesScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
 
-    Box {
-        Scaffold(
-            snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
-        ) { innerPadding ->
+    Scaffold(
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
+    ) { innerPadding ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+        ) {
             Image(
                 painter = painterResource(id = R.drawable.portrait_of_catherine_of_aragon_by_michel_sittow),
-                contentDescription = "portrait of Catherine of Aragon by Lucas Horenbout",
+                contentDescription = "portrait of Catherine of Aragon by Michel Sittow",
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
-                    .fillMaxSize()
+                    .matchParentSize()
                     .alpha(alpha = 0.5f)
             )
             Column(
@@ -106,16 +112,14 @@ fun EpisodesScreen(
                                 blurRadius = 4f
                             )
                         ),
-                        color = Color(0xFFFFC004), // ARGB
+                        color = GoldenYellow, // ARGB 0xFFFFC004
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         modifier = Modifier
-                            .clip(
-                                RoundedCornerShape(16.dp)
-                            )
-                            .background(color = Color(0x80D9D9D9)) // ARGB
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(color = TransparentGrey) // ARGB 0x80D9D9D9
                             .border(
                                 width = 1.dp,
                                 color = Color.Black,
@@ -158,8 +162,7 @@ fun EpisodeRow(
     episode: Episode,
     onClick: () -> Unit
 ) {
-    val textColor = if (episode.isAvailable) Color(0xFF000000) else Color(0x86000000) // ARGB
-
+    val textColor = if (episode.isAvailable) Color.Black else Color.Black.copy(alpha = 0.53f) // ARGB
     Surface(
         color = Color.Transparent,
         modifier = Modifier
@@ -177,8 +180,8 @@ fun EpisodeRow(
                 onCheckedChange = null,
                 enabled = false,
                 colors = colors(
-                    checkedColor = Color(0xFF000000),
-                    uncheckedColor = Color(0x86000000)
+                    checkedColor = Color.Black,
+                    uncheckedColor = Color.Black.copy(alpha = 0.53f)
                 ),
                 modifier = Modifier.weight(0.1f)
             )

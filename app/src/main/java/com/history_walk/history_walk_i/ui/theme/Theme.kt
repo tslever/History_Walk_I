@@ -10,6 +10,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 
 
+val GoldenYellow = Color(0xFFFFC004)
+val TransparentGrey = Color(0x80D9D9D9)
+
+
 private val DarkColorScheme = darkColorScheme(
     primary = Color(0xFFAAAAAA),
     onPrimary = Color.Black,
