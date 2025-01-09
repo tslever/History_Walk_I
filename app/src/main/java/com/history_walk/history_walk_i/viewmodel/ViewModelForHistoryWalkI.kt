@@ -8,6 +8,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
+import com.google.firebase.Firebase
 import com.google.firebase.FirebaseException
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseAuthMultiFactorException
@@ -77,7 +78,7 @@ class ViewModelForHistoryWalkI (application: Application) :
     private val mutableLiveDataOfNotification = MutableLiveData<String?>()
     val notification: LiveData<String?> get() = mutableLiveDataOfNotification
 
-    private val sharedPref = application.getSharedPreferences("appPreferences", Context.MODE_PRIVATE)
+    private val sharedPref = application.getSharedPreferences("appPreferences", Application.MODE_PRIVATE)
 
     private var phoneNumberOfUser: String? = null
 
@@ -93,9 +94,10 @@ class ViewModelForHistoryWalkI (application: Application) :
             mutableLiveDataOfFirebaseUser.value = currentUser
             if (currentUser != null) {
                 billingRepository?.endConnection()
-                billingRepository = BillingRepository(getApplication(), currentUser.uid)
-                billingRepository?.setBillingListener(this)
-                billingRepository?.startBillingConnection()
+                billingRepository = BillingRepository(getApplication(), currentUser.uid).also {
+                    it.setBillingListener(this)
+                    it.startBillingConnection()
+                }
 
                 fetchIndicatorOfWhetherUserHasUpgraded()
                 fetchIndexOfPresentEpisode()
@@ -107,8 +109,6 @@ class ViewModelForHistoryWalkI (application: Application) :
                         currentUser.getIdToken(true).addOnCompleteListener { tokenTask ->
                             if (tokenTask.isSuccessful) {
                                 Log.d("ViewModelForHistoryWalkI", "User reloaded and ID token refreshed.")
-                                Log.d("ViewModelForHistoryWalkI", "Email Verified: ${currentUser.isEmailVerified}")
-                                Log.d("ViewModelForHistoryWalkI", "MFA Enrolled Factors: ${currentUser.multiFactor.enrolledFactors.size}")
                                 if (currentUser.isEmailVerified) {
                                     if (currentUser.multiFactor.enrolledFactors.isNotEmpty()) {
                                         mutableLiveDataOfMfaVerified.postValue(true)
@@ -597,7 +597,7 @@ class ViewModelForHistoryWalkI (application: Application) :
                     }
                     val hasPhoneFactor = user.multiFactor.enrolledFactors.any { it is PhoneMultiFactorInfo }
                     if (!hasPhoneFactor) {
-                        onResult(true, null)
+                        onResult(false, "You don't have a phone for Two Factor Authentication.")
                     } else {
                         sendCodeForSecondFactor(user) { codeSentError ->
                             if (codeSentError != null) {
@@ -610,38 +610,7 @@ class ViewModelForHistoryWalkI (application: Application) :
                 } else {
                     val exception = task.exception
                     if (exception is FirebaseAuthMultiFactorException) {
-                        val multiFactorResolver = exception.resolver
-                        val phoneHint = multiFactorResolver.hints
-                            .filterIsInstance<PhoneMultiFactorInfo>()
-                            .firstOrNull()
-                        if (phoneHint == null) {
-                            onResult(false, "No phone factor found in multiFactorResolver.")
-                            return@addOnCompleteListener
-                        }
-                        val options = PhoneAuthOptions.newBuilder(FirebaseAuth.getInstance())
-                            .setActivity(currentActivityRef?.get() ?: return@addOnCompleteListener)
-                            .setMultiFactorSession(multiFactorResolver.session)
-                            .setMultiFactorHint(phoneHint)
-                            .setCallbacks(object : PhoneAuthProvider.OnVerificationStateChangedCallbacks() {
-                                override fun onVerificationCompleted(credential: PhoneAuthCredential) {
-                                    finalizeMultiFactorSignIn(credential, multiFactorResolver, onResult)
-                                }
-                                override fun onVerificationFailed(e: FirebaseException) {
-                                    onResult(false, "MFA verification failed: ${e.message}")
-                                }
-                                override fun onCodeSent(
-                                    verificationId: String,
-                                    token: PhoneAuthProvider.ForceResendingToken
-                                ) {
-                                    this@ViewModelForHistoryWalkI.multiFactorResolver = multiFactorResolver
-                                    verificationIdInternal = verificationId
-                                    mutableLiveDataOfVerificationId.value = verificationId
-                                    onResult(false, "MFA required")
-                                }
-                            })
-                            .setTimeout(30L, TimeUnit.SECONDS)
-                            .build()
-                        PhoneAuthProvider.verifyPhoneNumber(options)
+                        handleFirebaseAuthMultiFactorException(exception, onResult)
                     } else {
                         onResult(false, exception?.message)
                     }
@@ -650,6 +619,53 @@ class ViewModelForHistoryWalkI (application: Application) :
             .addOnFailureListener { e ->
                 onResult(false, e.message)
             }
+    }
+
+
+    private fun handleFirebaseAuthMultiFactorException(
+        multiFactorException: FirebaseAuthMultiFactorException,
+        onResult: (Boolean, String?) -> Unit
+    ) {
+        val multiFactorResolver = multiFactorException.resolver
+        val phoneHint = multiFactorResolver
+            .hints
+            .filterIsInstance<PhoneMultiFactorInfo>()
+            .firstOrNull()
+        if (phoneHint == null) {
+            onResult(false, "No phone factor found in multiFactorResolver.")
+            return
+        }
+        val activity = currentActivityRef?.get()
+        if (activity == null) {
+            onResult(false, "Current activity is null.")
+            return
+        }
+        val options = PhoneAuthOptions.newBuilder(FirebaseAuth.getInstance())
+            .setActivity(activity)
+            .setMultiFactorSession(multiFactorResolver.session)
+            .setMultiFactorHint(phoneHint)
+            .setCallbacks(object : PhoneAuthProvider.OnVerificationStateChangedCallbacks() {
+                override fun onVerificationCompleted(credential: PhoneAuthCredential) {
+                    finalizeMultiFactorSignIn(credential, multiFactorResolver) { success, error ->
+                        onResult(success, error)
+                    }
+                }
+                override fun onVerificationFailed(e: FirebaseException) {
+                    onResult(false, "MFA verification failed: ${e.message}")
+                }
+                override fun onCodeSent(
+                    verificationId: String,
+                    token: PhoneAuthProvider.ForceResendingToken
+                ) {
+                    this@ViewModelForHistoryWalkI.multiFactorResolver = multiFactorResolver
+                    verificationIdInternal = verificationId
+                    mutableLiveDataOfVerificationId.value = verificationId
+                    onResult(false, "MFA required")
+                }
+            })
+            .setTimeout(30L, TimeUnit.SECONDS)
+            .build()
+        PhoneAuthProvider.verifyPhoneNumber(options)
     }
 
 
@@ -733,7 +749,6 @@ class ViewModelForHistoryWalkI (application: Application) :
             onResult(false, "No MultiFactorResolver available.")
             return
         }
-
         val verificationId = verificationIdInternal
         if (verificationId.isNullOrEmpty()) {
             Log.e("ViewModelForHistoryWalkI", "Verification ID is not available.")
@@ -741,7 +756,6 @@ class ViewModelForHistoryWalkI (application: Application) :
             onResult(false, "Verification ID is not available.")
             return
         }
-
         val credential = PhoneAuthProvider.getCredential(verificationId, code)
         resolveSignIn(credential, onResult)
     }
