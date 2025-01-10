@@ -1,6 +1,5 @@
 package com.history_walk.history_walk_i.ui.screens
 
-import android.app.Activity
 import android.content.Context
 import android.hardware.Sensor
 import android.hardware.SensorEvent
@@ -48,10 +47,12 @@ fun EpisodeScreen(
     }
     val stepCounts by viewModel.stepCounts.observeAsState(emptyMap())
     val currentStepCount = stepCounts[episodeId] ?: 0
+    val numberOfStepsPerEpisode = viewModel.getSelectedNumberOfSteps()
 
     MapWithPathAndCircle(
         episodeId = episodeId,
-        stepCount = currentStepCount
+        stepCount = currentStepCount,
+        numberOfStepsPerEpisode = numberOfStepsPerEpisode
     )
     if (hasPermission) {
         Text(text = "Steps: $currentStepCount")

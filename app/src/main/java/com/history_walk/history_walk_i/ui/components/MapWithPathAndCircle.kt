@@ -30,10 +30,11 @@ import com.history_walk.history_walk_i.R
 @Composable
 fun MapWithPathAndCircle(
     episodeId: Int,
-    stepCount: Int
+    stepCount: Int,
+    numberOfStepsPerEpisode: Int
 ) {
     val context = LocalContext.current
-    val fraction = (stepCount.toFloat() / 70_000f).coerceIn(0f, 1f)
+    val fraction = 1_000 * (stepCount.toFloat() / numberOfStepsPerEpisode.toFloat()).coerceIn(0f, 1f)
     val maxScale = 10f
     val minScale = 1f
     var offset by remember { mutableStateOf(Offset.Zero) }
