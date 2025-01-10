@@ -2,13 +2,11 @@ package com.history_walk.history_walk_i.viewmodel
 
 import android.app.Activity
 import android.app.Application
-import android.content.Context
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
-import com.google.firebase.Firebase
 import com.google.firebase.FirebaseException
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseAuthMultiFactorException
@@ -25,6 +23,8 @@ import com.history_walk.history_walk_i.billing.BillingRepository
 import com.history_walk.history_walk_i.extensions.await
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.lang.ref.WeakReference
 import java.util.concurrent.TimeUnit
@@ -89,6 +89,10 @@ class ViewModelForHistoryWalkI (application: Application) :
     val verificationId: LiveData<String?> get() = mutableLiveDataOfVerificationId
 
     private var verificationIdInternal: String? = null
+
+    private val stepIncrementMutex = Mutex()
+    private var lastStepTime: Long = 0L
+    private val debounceInterval = 500L
 
 
     init {
@@ -395,8 +399,16 @@ class ViewModelForHistoryWalkI (application: Application) :
 
 
     fun incrementStepCount(episodeId: Int) {
-        val currentStepCount = stepCounts.value?.get(episodeId) ?: 0
-        updateStepCount(episodeId, currentStepCount + 1)
+        viewModelScope.launch {
+            stepIncrementMutex.withLock {
+                val currentTime = System.currentTimeMillis()
+                if (currentTime - lastStepTime >= debounceInterval) {
+                    lastStepTime = currentTime
+                    val currentStepCount = stepCounts.value?.get(episodeId) ?: 0
+                    updateStepCount(episodeId, currentStepCount + 1)
+                }
+            }
+        }
     }
 
 

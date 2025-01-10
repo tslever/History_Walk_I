@@ -243,7 +243,9 @@ fun NavGraphBuilder.mainGraph(
                     viewModel = viewModel
                 )
             } else {
-                navController.popBackStack(NavRoutes.EPISODES, false)
+                LaunchedEffect(Unit) {
+                    navController.popBackStack(NavRoutes.EPISODES, false)
+                }
             }
         }
         composable(NavRoutes.SETTINGS) {
