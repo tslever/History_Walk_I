@@ -238,7 +238,10 @@ fun NavGraphBuilder.mainGraph(
         ) { backStackEntry ->
             val episodeId = backStackEntry.arguments?.getInt("episodeId")
             if (episodeId != null && episodeId > 0 && episodeId <= viewModel.listOfTitlesOfEpisodes.size) {
-                EpisodeScreen(episodeId = episodeId)
+                EpisodeScreen(
+                    episodeId = episodeId,
+                    viewModel = viewModel
+                )
             } else {
                 navController.popBackStack(NavRoutes.EPISODES, false)
             }

@@ -394,6 +394,12 @@ class ViewModelForHistoryWalkI (application: Application) :
     }
 
 
+    fun incrementStepCount(episodeId: Int) {
+        val currentStepCount = stepCounts.value?.get(episodeId) ?: 0
+        updateStepCount(episodeId, currentStepCount + 1)
+    }
+
+
     fun initiateMfaEnrollment(onResult: (Boolean, String?) -> Unit = { _, _ -> }) {
         val user = firebaseAuth.currentUser
         if (user == null) {
