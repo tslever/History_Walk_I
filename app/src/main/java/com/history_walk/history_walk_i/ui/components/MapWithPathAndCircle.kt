@@ -25,13 +25,15 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import com.history_walk.history_walk_i.R
-import kotlin.math.sqrt
+
 
 @Composable
-fun MapWithPathAndCircle(episodeId: Int) {
-
+fun MapWithPathAndCircle(
+    episodeId: Int,
+    stepCount: Int
+) {
     val context = LocalContext.current
-    val fraction = 20_000f / 70_000f
+    val fraction = (stepCount.toFloat() / 70_000f).coerceIn(0f, 1f)
     val maxScale = 10f
     val minScale = 1f
     var offset by remember { mutableStateOf(Offset.Zero) }

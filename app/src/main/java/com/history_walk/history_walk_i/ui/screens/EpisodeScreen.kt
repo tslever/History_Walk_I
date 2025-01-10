@@ -35,7 +35,6 @@ fun EpisodeScreen(
     viewModel: ViewModelForHistoryWalkI
 ) {
     val context = LocalContext.current
-    val coroutineScope = rememberCoroutineScope()
     var hasPermission by remember {
         mutableStateOf(
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
@@ -50,7 +49,10 @@ fun EpisodeScreen(
     val stepCounts by viewModel.stepCounts.observeAsState(emptyMap())
     val currentStepCount = stepCounts[episodeId] ?: 0
 
-    MapWithPathAndCircle(episodeId)
+    MapWithPathAndCircle(
+        episodeId = episodeId,
+        stepCount = currentStepCount
+    )
     if (hasPermission) {
         Text(text = "Steps: $currentStepCount")
     } else {
