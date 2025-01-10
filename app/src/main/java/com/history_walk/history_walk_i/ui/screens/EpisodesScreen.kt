@@ -63,13 +63,13 @@ fun EpisodesScreen(
     onEpisodeClick: (Int) -> Unit
 ) {
     val indexOfPresentEpisode by viewModel.indexOfPresentEpisode.observeAsState(initial = 1)
-    val listOfEpisodes = viewModel.listOfTitlesOfEpisodes.mapIndexed { index, title ->
-        val theIndex = index + 1
+    val listOfEpisodes = viewModel.listOfTitlesOfEpisodes.mapIndexed { indexOfTitleOfEpisode, title ->
+        val indexOfEpisode = indexOfTitleOfEpisode + 1
         Episode(
-            isCompleted = theIndex < indexOfPresentEpisode,
-            index = theIndex,
+            isCompleted = indexOfEpisode < indexOfPresentEpisode,
+            index = indexOfEpisode,
             title = title,
-            isAvailable = theIndex <= indexOfPresentEpisode
+            isAvailable = indexOfEpisode <= indexOfPresentEpisode
         )
     }
 

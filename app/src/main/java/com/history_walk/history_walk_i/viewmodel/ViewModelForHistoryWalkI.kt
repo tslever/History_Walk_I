@@ -179,18 +179,18 @@ class ViewModelForHistoryWalkI (application: Application) :
             try {
                 val document = userDataDoc.get().await()
                 if (document.exists()) {
-                    val index = document.getLong("currentIndex")?.toInt() ?: 1
+                    val indexOfPresentEpisode = document.getLong("indexOfPresentEpisode")?.toInt() ?: 1
                     withContext(Dispatchers.Main) {
-                        mutableLiveDataOfIndexOfPresentEpisode.value = index
+                        mutableLiveDataOfIndexOfPresentEpisode.value = indexOfPresentEpisode
                     }
                 } else {
-                    userDataDoc.set(mapOf("currentIndex" to 1)).await()
+                    userDataDoc.set(mapOf("indexOfPresentEpisode" to 1)).await()
                     withContext(Dispatchers.Main) {
                         mutableLiveDataOfIndexOfPresentEpisode.value = 1
                     }
                 }
             } catch (e: Exception) {
-                Log.e("ViewModelForHistoryWalkI", "Error fetching index: $e")
+                Log.e("ViewModelForHistoryWalkI", "Error fetching index of present episode: $e")
                 withContext(Dispatchers.Main) {
                     mutableLiveDataOfIndexOfPresentEpisode.value = 1
                 }
@@ -321,10 +321,9 @@ class ViewModelForHistoryWalkI (application: Application) :
     }
 
 
-    fun incrementEpisodeIndex() {
-        val currentIndex = mutableLiveDataOfIndexOfPresentEpisode.value ?: 1
-        val newIndex = currentIndex + 1
-        setCurrentIndex(newIndex)
+    fun incrementIndexOfPresentEpisode() {
+        val indexOfPresentEpisode = mutableLiveDataOfIndexOfPresentEpisode.value ?: 1
+        setIndexOfPresentEpisode(indexOfPresentEpisode + 1)
     }
 
 
@@ -527,18 +526,18 @@ class ViewModelForHistoryWalkI (application: Application) :
     }
 
 
-    fun setCurrentIndex(newIndex: Int) {
-        mutableLiveDataOfIndexOfPresentEpisode.value = newIndex
+    fun setIndexOfPresentEpisode(indexOfPresentEpisode: Int) {
+        mutableLiveDataOfIndexOfPresentEpisode.value = indexOfPresentEpisode
         val uid = firebaseAuth.currentUser?.uid ?: run {
             Log.e("ViewModelForHistoryWalkI", "User is not authenticated.")
             return
         }
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                getUserDataDoc(uid).update("currentIndex", newIndex).await()
-                Log.d("ViewModelForHistoryWalkI", "Index updated to $newIndex")
+                getUserDataDoc(uid).update("indexOfPresentEpisode", indexOfPresentEpisode).await()
+                Log.d("ViewModelForHistoryWalkI", "Index of present episode updated to $indexOfPresentEpisode")
             } catch (e: Exception) {
-                Log.e("ViewModelForHistoryWalkI", "Error updating index: $e")
+                Log.e("ViewModelForHistoryWalkI", "Error updating index of present episode: $e")
             }
         }
     }
@@ -703,7 +702,7 @@ class ViewModelForHistoryWalkI (application: Application) :
                                                 mapOf(
                                                     "isPremium" to false,
                                                     "phoneNumber" to phoneNumber,
-                                                    "currentIndex" to 1
+                                                    "indexOfPresentEpisode" to 1
                                                 )
                                             ).await()
                                             withContext(Dispatchers.Main) {
