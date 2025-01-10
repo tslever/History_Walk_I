@@ -78,6 +78,9 @@ class ViewModelForHistoryWalkI (application: Application) :
     private val mutableLiveDataOfNotification = MutableLiveData<String?>()
     val notification: LiveData<String?> get() = mutableLiveDataOfNotification
 
+    private val mutableLiveDataOfStepCounts = MutableLiveData<Map<Int, Int>>()
+    val stepCounts: LiveData<Map<Int, Int>> get() = mutableLiveDataOfStepCounts
+
     private val sharedPref = application.getSharedPreferences("appPreferences", Application.MODE_PRIVATE)
 
     private var phoneNumberOfUser: String? = null
@@ -101,6 +104,7 @@ class ViewModelForHistoryWalkI (application: Application) :
 
                 fetchIndicatorOfWhetherUserHasUpgraded()
                 fetchIndexOfPresentEpisode()
+                fetchOrInitializeStepCounts()
                 fetchPhoneNumberOfUser {
 
                 }
@@ -193,6 +197,69 @@ class ViewModelForHistoryWalkI (application: Application) :
                 Log.e("ViewModelForHistoryWalkI", "Error fetching index of present episode: $e")
                 withContext(Dispatchers.Main) {
                     mutableLiveDataOfIndexOfPresentEpisode.value = 1
+                }
+            }
+        }
+    }
+
+
+    private fun fetchOrInitializeStepCounts() {
+        viewModelScope.launch(Dispatchers.IO) {
+            val uid = firebaseAuth.currentUser?.uid
+            if (uid == null) {
+                Log.e("ViewModelForHistoryWalkI", "User is not authenticated.")
+                return@launch
+            }
+            val userDataDoc = getUserDataDoc(uid)
+            try {
+                val document = userDataDoc.get().await()
+                if (document.exists()) {
+                    val stepsMap = document.get("steps") as? Map<String, Long>
+                    if (stepsMap != null) {
+                        val stepCounts = stepsMap
+                            .mapKeys { it.key.toIntOrNull() ?: 0 }
+                            .mapValues { it.value.toInt() }
+                        withContext(Dispatchers.Main) {
+                            mutableLiveDataOfStepCounts.value = stepCounts
+                        }
+                    } else {
+                        val defaultStepCounts = listOfTitlesOfEpisodes.indices.map { indexOfTitleOfEpisode ->
+                            (indexOfTitleOfEpisode + 1).toString() to 0L
+                        }.toMap()
+                        userDataDoc.update("steps", defaultStepCounts).await()
+                        withContext(Dispatchers.Main) {
+                            mutableLiveDataOfStepCounts.value = defaultStepCounts
+                                .mapKeys { it.key.toInt() }
+                                .mapValues { it.value.toInt() }
+                        }
+                    }
+                } else {
+                    val defaultStepCounts = listOfTitlesOfEpisodes.indices.map { indexOfTitleOfEpisode ->
+                        (indexOfTitleOfEpisode + 1).toString() to 0L
+                    }.toMap()
+                    userDataDoc.set(
+                        mapOf(
+                            "indexOfPresentEpisode" to 1,
+                            "isPremium" to false,
+                            "phoneNumber" to phoneNumberOfUser,
+                            "steps" to defaultStepCounts
+                        )
+                    ).await()
+                    withContext(Dispatchers.Main) {
+                        mutableLiveDataOfStepCounts.value = defaultStepCounts
+                            .mapKeys { it.key.toInt() }
+                            .mapValues { it.value.toInt() }
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("ViewModelForHistoryWalkI", "Error fetching or initializing step counts: $e")
+                val defaultStepCounts = listOfTitlesOfEpisodes.indices.map { indexOfTitleOfEpisode ->
+                    (indexOfTitleOfEpisode + 1).toString() to 0L
+                }.toMap()
+                withContext(Dispatchers.Main) {
+                    mutableLiveDataOfStepCounts.value = defaultStepCounts
+                        .mapKeys { it.key.toInt() }
+                        .mapValues { it.value.toInt() }
                 }
             }
         }
@@ -737,6 +804,31 @@ class ViewModelForHistoryWalkI (application: Application) :
                 Log.e("ViewModelForHistoryWalkI", "Sign-up error: ${e.message}")
                 onResult(false, e.message)
             }
+    }
+
+
+    fun updateStepCount(episodeId: Int, stepCount: Int) {
+        val uid = firebaseAuth.currentUser?.uid ?: run {
+            Log.e("ViewModelForHistoryWalkI", "User is not authenticated.")
+            return
+        }
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val userDataDoc = getUserDataDoc(uid)
+                userDataDoc.update("steps.${episodeId}", stepCount).await()
+                val currentSteps = mutableLiveDataOfStepCounts.value?.toMutableMap() ?: mutableMapOf()
+                currentSteps[episodeId] = stepCount
+                withContext(Dispatchers.Main) {
+                    mutableLiveDataOfStepCounts.value = currentSteps
+                }
+                Log.d("ViewModelForHistoryWalkI", "Step count for episode $episodeId updated to $stepCount")
+            } catch (e: Exception) {
+                Log.e("ViewModelForHistoryWalkI", "Error updating step count: $e")
+                withContext(Dispatchers.Main) {
+                    mutableLiveDataOfNotification.value = "Error updating step count: $e"
+                }
+            }
+        }
     }
 
 
