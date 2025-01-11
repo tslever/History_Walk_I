@@ -112,13 +112,6 @@ class ViewModelForHistoryWalkI (application: Application) :
                     it.startBillingConnection()
                 }
 
-                viewModelScope.launch(Dispatchers.IO) {
-                    while (isActive) {
-                        delay(10_000L)
-                        flushStepBuffer()
-                    }
-                }
-
                 fetchIndicatorOfWhetherUserHasUpgraded()
                 fetchIndexOfPresentEpisode()
                 fetchOrInitializeStepCounts()
@@ -220,29 +213,25 @@ class ViewModelForHistoryWalkI (application: Application) :
     }
 
 
-    private suspend fun flushStepBuffer() {
-        stepBufferMutex.withLock {
-            if (stepBuffer.isEmpty()) { return }
-            val uid = firebaseAuth.currentUser?.uid
-            if (uid == null) {
-                Log.e("ViewModelForHistoryWalkI", "User is not authenticated.")
-                return
+    private suspend fun flushStepBuffer(buffer: Map<Int, Int>) {
+        val uid = firebaseAuth.currentUser?.uid
+        if (uid == null) {
+            Log.e("ViewModelForHistoryWalkI", "User is not authenticated.")
+            return
+        }
+        val userDataDoc = getUserDataDoc(uid)
+        val updates = buffer
+            .mapKeys { "steps.${it.key}" }
+            .mapValues { (_, stepCount) ->
+                FieldValue.increment(stepCount.toLong())
             }
-            val userDataDoc = getUserDataDoc(uid)
-            val updates = stepBuffer
-                .mapKeys { "steps.${it.key}" }
-                .mapValues { (_, stepCount) ->
-                    FieldValue.increment(stepCount.toLong())
-                }
-            try {
-                userDataDoc.update(updates).await()
-                stepBuffer.clear()
-                Log.d("ViewModelForHistoryWalkI", "Step buffer flushed to Firestore: $updates")
-            } catch (e: Exception) {
-                Log.e("ViewModelForHistoryWalkI", "Error flushing step buffer: $e")
-                withContext(Dispatchers.Main) {
-                    mutableLiveDataOfNotification.value = "Error updating step count: $e"
-                }
+        try {
+            userDataDoc.update(updates).await()
+            Log.d("ViewModelForHistoryWalkI", "Step buffer flushed to Firestore: $updates")
+        } catch (e: Exception) {
+            Log.e("ViewModelForHistoryWalkI", "Error flushing step buffer: $e")
+            withContext(Dispatchers.Main) {
+                mutableLiveDataOfNotification.value = "Error updating step count: $e"
             }
         }
     }
@@ -445,8 +434,17 @@ class ViewModelForHistoryWalkI (application: Application) :
                 val currentTime = System.currentTimeMillis()
                 if (currentTime - lastStepTime >= debounceInterval) {
                     lastStepTime = currentTime
+                    var bufferCopy: Map<Int, Int>? = null
                     stepBufferMutex.withLock {
                         stepBuffer[episodeId] = (stepBuffer[episodeId] ?: 0) + 1
+                        val totalSteps = stepBuffer.values.sum()
+                        if (totalSteps >= 100) {
+                            bufferCopy = stepBuffer.toMap()
+                            stepBuffer.clear()
+                        }
+                    }
+                    if (bufferCopy != null) {
+                        flushStepBuffer(bufferCopy!!)
                     }
                     val currentSteps = stepCounts.value?.toMutableMap() ?: mutableMapOf()
                     currentSteps[episodeId] = (currentSteps[episodeId] ?: 0) + 1
@@ -484,7 +482,7 @@ class ViewModelForHistoryWalkI (application: Application) :
     override fun onCleared() {
         super.onCleared()
         viewModelScope.launch(Dispatchers.IO) {
-            flushStepBuffer()
+            flushStepBuffer(stepBuffer.toMap())
         }
         billingRepository?.endConnection()
     }
@@ -697,7 +695,7 @@ class ViewModelForHistoryWalkI (application: Application) :
                 withContext(Dispatchers.Main) {
                     mutableLiveDataOfIndicatorOfWhetherUserHasUpgraded.value = status
                 }
-                Log.d("ViewModelForHistoryWalkI", "Premium statu set to $status")
+                Log.d("ViewModelForHistoryWalkI", "Premium status set to $status")
             } catch (e: Exception) {
                 Log.e("ViewModelForHistoryWalkI", "Error setting premium status: $e")
                 withContext(Dispatchers.Main) {
