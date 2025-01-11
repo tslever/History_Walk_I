@@ -18,10 +18,13 @@ import com.google.firebase.auth.PhoneAuthOptions
 import com.google.firebase.auth.PhoneAuthProvider
 import com.google.firebase.auth.PhoneMultiFactorGenerator
 import com.google.firebase.auth.PhoneMultiFactorInfo
+import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.history_walk.history_walk_i.billing.BillingRepository
 import com.history_walk.history_walk_i.extensions.await
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -94,6 +97,9 @@ class ViewModelForHistoryWalkI (application: Application) :
     private var lastStepTime: Long = 0L
     private val debounceInterval = 500L
 
+    private val stepBuffer = mutableMapOf<Int, Int>()
+    private val stepBufferMutex = Mutex()
+
 
     init {
         firebaseAuth.addAuthStateListener { theFirebaseAuth ->
@@ -104,6 +110,13 @@ class ViewModelForHistoryWalkI (application: Application) :
                 billingRepository = BillingRepository(getApplication(), currentUser.uid).also {
                     it.setBillingListener(this)
                     it.startBillingConnection()
+                }
+
+                viewModelScope.launch(Dispatchers.IO) {
+                    while (isActive) {
+                        delay(10_000L)
+                        flushStepBuffer()
+                    }
                 }
 
                 fetchIndicatorOfWhetherUserHasUpgraded()
@@ -201,6 +214,34 @@ class ViewModelForHistoryWalkI (application: Application) :
                 Log.e("ViewModelForHistoryWalkI", "Error fetching index of present episode: $e")
                 withContext(Dispatchers.Main) {
                     mutableLiveDataOfIndexOfPresentEpisode.value = 1
+                }
+            }
+        }
+    }
+
+
+    private suspend fun flushStepBuffer() {
+        stepBufferMutex.withLock {
+            if (stepBuffer.isEmpty()) { return }
+            val uid = firebaseAuth.currentUser?.uid
+            if (uid == null) {
+                Log.e("ViewModelForHistoryWalkI", "User is not authenticated.")
+                return
+            }
+            val userDataDoc = getUserDataDoc(uid)
+            val updates = stepBuffer
+                .mapKeys { "steps.${it.key}" }
+                .mapValues { (_, stepCount) ->
+                    FieldValue.increment(stepCount.toLong())
+                }
+            try {
+                userDataDoc.update(updates).await()
+                stepBuffer.clear()
+                Log.d("ViewModelForHistoryWalkI", "Step buffer flushed to Firestore: $updates")
+            } catch (e: Exception) {
+                Log.e("ViewModelForHistoryWalkI", "Error flushing step buffer: $e")
+                withContext(Dispatchers.Main) {
+                    mutableLiveDataOfNotification.value = "Error updating step count: $e"
                 }
             }
         }
@@ -404,8 +445,14 @@ class ViewModelForHistoryWalkI (application: Application) :
                 val currentTime = System.currentTimeMillis()
                 if (currentTime - lastStepTime >= debounceInterval) {
                     lastStepTime = currentTime
-                    val currentStepCount = stepCounts.value?.get(episodeId) ?: 0
-                    updateStepCount(episodeId, currentStepCount + 1)
+                    stepBufferMutex.withLock {
+                        stepBuffer[episodeId] = (stepBuffer[episodeId] ?: 0) + 1
+                    }
+                    val currentSteps = stepCounts.value?.toMutableMap() ?: mutableMapOf()
+                    currentSteps[episodeId] = (currentSteps[episodeId] ?: 0) + 1
+                    withContext(Dispatchers.Main) {
+                        mutableLiveDataOfStepCounts.value = currentSteps
+                    }
                 }
             }
         }
@@ -436,6 +483,9 @@ class ViewModelForHistoryWalkI (application: Application) :
 
     override fun onCleared() {
         super.onCleared()
+        viewModelScope.launch(Dispatchers.IO) {
+            flushStepBuffer()
+        }
         billingRepository?.endConnection()
     }
 
@@ -822,31 +872,6 @@ class ViewModelForHistoryWalkI (application: Application) :
                 Log.e("ViewModelForHistoryWalkI", "Sign-up error: ${e.message}")
                 onResult(false, e.message)
             }
-    }
-
-
-    fun updateStepCount(episodeId: Int, stepCount: Int) {
-        val uid = firebaseAuth.currentUser?.uid ?: run {
-            Log.e("ViewModelForHistoryWalkI", "User is not authenticated.")
-            return
-        }
-        viewModelScope.launch(Dispatchers.IO) {
-            try {
-                val userDataDoc = getUserDataDoc(uid)
-                userDataDoc.update("steps.${episodeId}", stepCount).await()
-                val currentSteps = mutableLiveDataOfStepCounts.value?.toMutableMap() ?: mutableMapOf()
-                currentSteps[episodeId] = stepCount
-                withContext(Dispatchers.Main) {
-                    mutableLiveDataOfStepCounts.value = currentSteps
-                }
-                Log.d("ViewModelForHistoryWalkI", "Step count for episode $episodeId updated to $stepCount")
-            } catch (e: Exception) {
-                Log.e("ViewModelForHistoryWalkI", "Error updating step count: $e")
-                withContext(Dispatchers.Main) {
-                    mutableLiveDataOfNotification.value = "Error updating step count: $e"
-                }
-            }
-        }
     }
 
 
