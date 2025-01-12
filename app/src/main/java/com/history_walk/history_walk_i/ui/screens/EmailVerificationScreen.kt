@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme.typography
 import androidx.compose.material3.Text
@@ -20,7 +21,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.history_walk.history_walk_i.viewmodel.ViewModelForHistoryWalkI
-import kotlinx.coroutines.delay
 
 
 @Composable
@@ -28,19 +28,39 @@ fun EmailVerificationScreen(
     viewModel: ViewModelForHistoryWalkI,
     onProceedToMfa: () -> Unit
 ) {
+    val canResend by viewModel.canResendVerificationEmail.observeAsState(false)
     var message by remember { mutableStateOf("") }
-    var canResend by remember { mutableStateOf(false) }
-    var timeRemaining by remember { mutableStateOf(120) }
+    val notificationMessage by viewModel.notification.observeAsState()
+    var showDialog by remember { mutableStateOf(false) }
+    val timeRemaining by viewModel.emailVerificationCountdown.observeAsState(120)
     val user = viewModel.firebaseUser.observeAsState(initial = null).value
 
     LaunchedEffect(Unit) {
-        canResend = false
-        timeRemaining = 120
-        while (timeRemaining > 0) {
-            delay(1000L)
-            timeRemaining--
+        viewModel.startEmailVerificationCountdown()
+    }
+
+    if (notificationMessage != null) {
+        LaunchedEffect(notificationMessage) {
+            showDialog = true
         }
-        canResend = true
+
+        if (showDialog) {
+            AlertDialog(
+                onDismissRequest = { showDialog = false },
+                title = { Text(text = "Notification") },
+                text = { Text(text = notificationMessage!!) },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            showDialog = false
+                            viewModel.clearNotification()
+                        }
+                    ) {
+                        Text("OK")
+                    }
+                }
+            )
+        }
     }
 
     Column(
@@ -56,7 +76,7 @@ fun EmailVerificationScreen(
         )
         Spacer(modifier = Modifier.height(16.dp))
         Text(
-            text = message.ifEmpty { "Please verify your email to proceed with MFA enrollment." },
+            text = "Please verify your email to proceed with MFA enrollment.",
             style = typography.bodyLarge
         )
         Spacer(modifier = Modifier.height(16.dp))
@@ -67,10 +87,12 @@ fun EmailVerificationScreen(
                         if (user.isEmailVerified) {
                             onProceedToMfa()
                         } else {
-                            message = "Email not verified yet. Please check your inbox."
+                            viewModel.clearNotification()
+                            viewModel.mutableLiveDataOfNotification.value = "Email not verified yet. Please check your inbox."
                         }
                     } else {
-                        message = "Failed to reload user: ${task.exception?.message}"
+                        viewModel.clearNotification()
+                        viewModel.mutableLiveDataOfNotification.value = "Failed to reload user: ${task.exception?.message}"
                     }
                 }
             }
@@ -80,15 +102,7 @@ fun EmailVerificationScreen(
         Spacer(modifier = Modifier.height(16.dp))
         Button(
             onClick = {
-                user?.sendEmailVerification()?.addOnCompleteListener { resendTask ->
-                    if (resendTask.isSuccessful) {
-                        message = "Verification email resent. Please check your inbox."
-                        canResend = false
-                        timeRemaining = 120
-                    } else {
-                        message = "Failed to resend verification email: ${resendTask.exception?.message}"
-                    }
-                }
+                viewModel.resendVerificationEmail()
             },
             enabled = canResend
         ) {
@@ -97,16 +111,6 @@ fun EmailVerificationScreen(
             } else {
                 Text(text = "Resend Verification Email In ${timeRemaining} s")
             }
-        }
-    }
-
-    LaunchedEffect(canResend) {
-        if (!canResend) {
-            while (timeRemaining > 0) {
-                delay(1000L)
-                timeRemaining--
-            }
-            canResend = true
         }
     }
 }

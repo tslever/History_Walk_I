@@ -23,6 +23,7 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.history_walk.history_walk_i.billing.BillingRepository
 import com.history_walk.history_walk_i.extensions.await
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -41,10 +42,16 @@ class ViewModelForHistoryWalkI (application: Application) :
 
     private var currentActivityRef: WeakReference<Activity>? = null
 
+    private val debounceInterval = 500L
+
+    private var emailVerificationJob: Job? = null
+
     private var enrollmentSession: MultiFactorSession? = null
 
     private val firebaseAuth: FirebaseAuth = FirebaseAuth.getInstance()
     private val firebaseFirestore = FirebaseFirestore.getInstance()
+
+    private var lastStepTime: Long = 0L
 
     val listOfTitlesOfEpisodes = listOf(
         "The Alhambra",
@@ -63,6 +70,12 @@ class ViewModelForHistoryWalkI (application: Application) :
 
     private var multiFactorResolver: MultiFactorResolver? = null
 
+    private val mutableLiveDataOfCanResendVerificationEmail = MutableLiveData<Boolean>(false)
+    val canResendVerificationEmail: LiveData<Boolean> get() = mutableLiveDataOfCanResendVerificationEmail
+
+    private val mutableLiveDataOfEmailVerificationCountdown = MutableLiveData<Int>()
+    val emailVerificationCountdown: LiveData<Int> get() = mutableLiveDataOfEmailVerificationCountdown
+
     private val mutableLiveDataOfFirebaseUser = MutableLiveData<FirebaseUser?>(firebaseAuth.currentUser)
     val firebaseUser: LiveData<FirebaseUser?> get() = mutableLiveDataOfFirebaseUser
 
@@ -78,27 +91,24 @@ class ViewModelForHistoryWalkI (application: Application) :
     private val mutableLiveDataOfMfaVerified = MutableLiveData(false)
     val mfaVerified: LiveData<Boolean> get() = mutableLiveDataOfMfaVerified
 
-    private val mutableLiveDataOfNotification = MutableLiveData<String?>()
+    val mutableLiveDataOfNotification = MutableLiveData<String?>()
     val notification: LiveData<String?> get() = mutableLiveDataOfNotification
 
     private val mutableLiveDataOfStepCounts = MutableLiveData<Map<Int, Int>>()
     val stepCounts: LiveData<Map<Int, Int>> get() = mutableLiveDataOfStepCounts
 
-    private val sharedPref = application.getSharedPreferences("appPreferences", Application.MODE_PRIVATE)
-
-    private var phoneNumberOfUser: String? = null
-
     private val mutableLiveDataOfVerificationId = MutableLiveData<String?>()
     val verificationId: LiveData<String?> get() = mutableLiveDataOfVerificationId
 
-    private var verificationIdInternal: String? = null
+    private var phoneNumberOfUser: String? = null
 
-    private val stepIncrementMutex = Mutex()
-    private var lastStepTime: Long = 0L
-    private val debounceInterval = 500L
+    private val sharedPref = application.getSharedPreferences("appPreferences", Application.MODE_PRIVATE)
 
     private val stepBuffer = mutableMapOf<Int, Int>()
     private val stepBufferMutex = Mutex()
+    private val stepIncrementMutex = Mutex()
+
+    private var verificationIdInternal: String? = null
 
 
     init {
@@ -485,6 +495,7 @@ class ViewModelForHistoryWalkI (application: Application) :
             flushStepBuffer(stepBuffer.toMap())
         }
         billingRepository?.endConnection()
+        emailVerificationJob?.cancel()
     }
 
 
@@ -512,6 +523,24 @@ class ViewModelForHistoryWalkI (application: Application) :
                 Log.e("ViewModelForHistoryWalkI", "BillingRepository is not initialized.")
                 mutableLiveDataOfNotification.postValue("BillingRepository is not initialized.")
             }
+    }
+
+
+    fun resendVerificationEmail() {
+        val user = firebaseAuth.currentUser
+        if (user != null) {
+            user.sendEmailVerification()
+                .addOnCompleteListener { resendTask ->
+                    if (resendTask.isSuccessful) {
+                        mutableLiveDataOfNotification.value = "Verification email resent. Please check your inbox."
+                        startEmailVerificationCountdown()
+                    } else {
+                        mutableLiveDataOfNotification.value = "Failed to resend verification email: ${resendTask.exception?.message}"
+                    }
+                }
+        } else {
+            mutableLiveDataOfNotification.value = "User is not authenticated."
+        }
     }
 
 
@@ -709,6 +738,20 @@ class ViewModelForHistoryWalkI (application: Application) :
     fun setSelectedNumberOfSteps(numberOfSteps: Int) {
         viewModelScope.launch {
             sharedPref.edit().putInt("selectedNumberOfSteps", numberOfSteps).apply()
+        }
+    }
+
+
+    fun startEmailVerificationCountdown() {
+        if (emailVerificationJob?.isActive == true) { return }
+        emailVerificationJob = viewModelScope.launch {
+            mutableLiveDataOfCanResendVerificationEmail.value = false
+            mutableLiveDataOfEmailVerificationCountdown.value = 120
+            while (mutableLiveDataOfEmailVerificationCountdown.value!! > 0) {
+                delay(1000L)
+                mutableLiveDataOfEmailVerificationCountdown.value = mutableLiveDataOfEmailVerificationCountdown.value!! - 1
+            }
+            mutableLiveDataOfCanResendVerificationEmail.value = true
         }
     }
 
