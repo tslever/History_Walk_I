@@ -183,6 +183,7 @@ class ViewModelForHistoryWalkI (application: Application) :
                     mutableLiveDataOfMfaVerified.postValue(true)
                 } else {
                     Log.e("ViewModelForHistoryWalkI", "MFA Enrollment failed: ${task.exception?.message}")
+                    mutableLiveDataOfMfaVerified.postValue(false)
                     mutableLiveDataOfNotification.postValue("MFA Enrollment failed: ${task.exception?.message}")
                 }
             }
@@ -953,7 +954,11 @@ class ViewModelForHistoryWalkI (application: Application) :
         }
         val credential = PhoneAuthProvider.getCredential(verificationId, code)
         enrollMfaWithCredential(credential)
-        onResult(true, null)
+        if (mutableLiveDataOfMfaVerified.value == true) {
+            onResult(true, null)
+        } else {
+            onResult(false, "Enrolling in MFA failed.")
+        }
     }
 
 }

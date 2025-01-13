@@ -35,7 +35,6 @@ fun MfaEnrollmentScreen(
 ) {
     var code by remember { mutableStateOf("") }
     var errorMessage by remember { mutableStateOf<String?>(null) }
-    val verificationId by viewModel.verificationId.observeAsState()
 
     BackHandler {
         onEnrollmentFailure()

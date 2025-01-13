@@ -29,7 +29,6 @@ fun EmailVerificationScreen(
     onProceedToMfa: () -> Unit
 ) {
     val canResend by viewModel.canResendVerificationEmail.observeAsState(false)
-    var message by remember { mutableStateOf("") }
     val notificationMessage by viewModel.notification.observeAsState()
     var showDialog by remember { mutableStateOf(false) }
     val timeRemaining by viewModel.emailVerificationCountdown.observeAsState(120)
