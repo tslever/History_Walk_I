@@ -112,14 +112,14 @@ fun EpisodesScreen(
                                 blurRadius = 4f
                             )
                         ),
-                        color = GoldenYellow, // ARGB 0xFFFFC004
+                        color = GoldenYellow,
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         modifier = Modifier
                             .clip(RoundedCornerShape(16.dp))
-                            .background(color = TransparentGrey) // ARGB 0x80D9D9D9
+                            .background(color = TransparentGrey)
                             .border(
                                 width = 1.dp,
                                 color = Color.Black,
@@ -150,7 +150,9 @@ fun EpisodesScreen(
                         }
                     }
                 }
-                SettingsButton(onGoToSettings = onGoToSettings)
+                SettingsButton(
+                    onGoToSettings = onGoToSettings
+                )
             }
         }
     }
@@ -162,7 +164,7 @@ fun EpisodeRow(
     episode: Episode,
     onClick: () -> Unit
 ) {
-    val textColor = if (episode.isAvailable) Color.Black else Color.Black.copy(alpha = 0.53f) // ARGB
+    val textColor = if (episode.isAvailable) Color.Black else Color.Black.copy(alpha = 0.53f)
     Surface(
         color = Color.Transparent,
         modifier = Modifier

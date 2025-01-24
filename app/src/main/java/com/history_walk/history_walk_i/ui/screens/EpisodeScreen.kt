@@ -83,7 +83,6 @@ fun EpisodeScreen(
     val powerManager = remember {
         context.getSystemService(Context.POWER_SERVICE) as PowerManager
     }
-    val currentViewModel by rememberUpdatedState(newValue = viewModel)
     val stepListener = remember {
         object : SensorEventListener {
             override fun onSensorChanged(event: SensorEvent?) {

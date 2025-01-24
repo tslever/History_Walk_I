@@ -59,6 +59,7 @@ fun HomeScreen(
     viewModel: ViewModelForHistoryWalkI
 ) {
 
+    val context = LocalContext.current
     var dropdownMenuOfPacesIsExpanded by remember { mutableStateOf(false) }
     val listOfTuplesOfDescriptionsAndNumbersOfSteps = listOf(
         TupleOfDescriptionAndNumberOfSteps("low", 35_000),
@@ -70,11 +71,10 @@ fun HomeScreen(
         mutableStateOf(
             listOfTuplesOfDescriptionsAndNumbersOfSteps.find {
                 it.numberOfSteps == numberOfStepsInSharedPreferences
-            } ?: listOfTuplesOfDescriptionsAndNumbersOfSteps[0]
+            } ?: listOfTuplesOfDescriptionsAndNumbersOfSteps[1]
         )
     }
-    val userHasUpgraded by viewModel.userHasUpgraded.observeAsState(initial = false)
-    val context = LocalContext.current
+    val userHasUpgraded by viewModel.userHasUpgraded.observeAsState(false)
 
     Box {
         Image(
@@ -113,7 +113,7 @@ fun HomeScreen(
                     modifier = Modifier.height(16.dp)
                 )
                 Text(
-                    text = "With this app you’ll be able to  learn loads of fascinating history while getting exercise. Every step you take translates into movement across the map. Whenever you reach an event icon, you’ll learn a little more about the life of Catherine of Aragon, the first Queen of Henry VIII of England.\n\nGo to the Episodes page to begin the adventure!",
+                    text = "With this app you’ll be able to learn loads of fascinating history while getting exercise. Every step you take translates into movement across the map. Whenever you reach an event icon, you’ll learn a little more about the life of Catherine of Aragon, the first Queen of Henry VIII of England.\n\nGo to the Episodes page to begin the adventure!",
                     style = typography.displayMedium,
                     textAlign = TextAlign.Center
                 )
@@ -172,7 +172,10 @@ fun HomeScreen(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Button(
-                    onClick = onGoToEpisodes,
+                    onClick = {
+                        viewModel.setHasSeenHome()
+                        onGoToEpisodes()
+                              },
                     modifier = Modifier
                         .border(
                             width = 1.dp,
@@ -233,7 +236,9 @@ fun HomeScreen(
                     )
                 }
             }
-            SettingsButton (onGoToSettings = onGoToSettings)
+            SettingsButton (
+                onGoToSettings = onGoToSettings
+            )
         }
     }
 }

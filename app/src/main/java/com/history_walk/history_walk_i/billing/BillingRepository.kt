@@ -8,16 +8,12 @@ import com.android.billingclient.api.BillingClient
 import com.android.billingclient.api.BillingClientStateListener
 import com.android.billingclient.api.BillingFlowParams
 import com.android.billingclient.api.BillingResult
-import com.android.billingclient.api.ConsumeParams
 import com.android.billingclient.api.ProductDetails
 import com.android.billingclient.api.Purchase
 import com.android.billingclient.api.PurchasesUpdatedListener
 import com.android.billingclient.api.QueryProductDetailsParams
 import com.android.billingclient.api.QueryPurchasesParams
 import com.android.billingclient.api.queryProductDetails
-import com.google.firebase.firestore.DocumentReference
-import com.google.firebase.firestore.FirebaseFirestore
-import com.history_walk.history_walk_i.extensions.await
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -30,11 +26,7 @@ import kotlinx.coroutines.withContext
 import kotlin.math.pow
 
 
-class BillingRepository(
-    context: Context,
-    private val usersUid: String
-) : PurchasesUpdatedListener {
-
+class BillingRepository(context: Context) : PurchasesUpdatedListener {
 
     interface BillingListener {
         fun onPurchaseSuccess()
@@ -55,12 +47,11 @@ class BillingRepository(
     private var billingListener: BillingListener? = null
     private val coroutineScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private val delayBeforeInitialRetry = 3000L // milliseconds
-    private val firestore = FirebaseFirestore.getInstance()
     private var indexOfRetry = 0
     private val maximumDelay = 30_000L
     private val maximumNumberOfRetries = 5
     private val mutex = Mutex()
-    private val productId = "consumable_premium_upgrade"
+    private val productId = "nonconsumable_premium_upgrade"
 
 
     // Function acknowledgePurchase acknowledges a purchase.
@@ -71,58 +62,10 @@ class BillingRepository(
         billingClient.acknowledgePurchase(acknowledgePurchaseParams) { billingResult ->
             if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
                 Log.i(TAG, "Purchase acknowledged successfully.")
-                coroutineScope.launch {
-                    associatePurchaseWithUserSusp()
-                    consumePurchase(purchase)
-                }
+                billingListener?.onPurchaseSuccess()
             } else {
                 val msg = "Failed to acknowledge purchase: ${billingResult.responseCode}"
                 Log.e(TAG, msg)
-                billingListener?.onNotifyUser(msg)
-            }
-        }
-    }
-
-
-    private suspend fun associatePurchaseWithUserSusp() {
-        try {
-            getUserDataDoc(usersUid)
-                .update(mapOf("isPremium" to true))
-                .await()
-            Log.d(TAG, "Premium status updated in Firestore for user $usersUid")
-            withContext(Dispatchers.Main) {
-                billingListener?.onPurchaseSuccess()
-            }
-        } catch (e: Exception) {
-            val msg = "Error updating premium status: $e"
-            Log.e(TAG, msg)
-            withContext(Dispatchers.Main) {
-                billingListener?.onNotifyUser(msg)
-            }
-        }
-    }
-
-
-    // Function checkExistingPurchases checks existing purchases to restore premium status.
-    private suspend fun checkExistingPurchasesSusp() {
-        try {
-            val documentSnapshot = getUserDataDoc(usersUid).get().await()
-            if (documentSnapshot.exists()) {
-                val isPremium = documentSnapshot.getBoolean("isPremium") ?: false
-                if (isPremium) {
-                    withContext(Dispatchers.Main) {
-                        billingListener?.onPurchaseSuccess()
-                    }
-                } else {
-                    Log.i(TAG, "User does not have premium status.")
-                }
-            } else {
-                Log.i(TAG, "User data document does not exist.")
-            }
-        } catch (e: Exception) {
-            val msg = "Error fetching user data: $e"
-            Log.e(TAG, msg)
-            withContext(Dispatchers.Main) {
                 billingListener?.onNotifyUser(msg)
             }
         }
@@ -156,7 +99,7 @@ class BillingRepository(
                     billingClient.startConnection(
                         object : BillingClientStateListener {
                             override fun onBillingServiceDisconnected() {
-                                connectToBillingClient(forceRetry = true)
+                                handleBillingServiceDisconnected()
                             }
                             override fun onBillingSetupFinished(billingResult: BillingResult) {
                                 handleBillingSetupFinished(billingResult)
@@ -166,23 +109,6 @@ class BillingRepository(
                 } else {
                     indexOfRetry = 0
                 }
-            }
-        }
-    }
-
-
-    private fun consumePurchase(purchase: Purchase) {
-        val consumeParams = ConsumeParams
-            .newBuilder()
-            .setPurchaseToken(purchase.purchaseToken)
-            .build()
-        billingClient.consumeAsync(consumeParams) { billingResult, purchaseToken ->
-            if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
-                Log.i(TAG, "Purchase consumed successfully: $purchaseToken")
-            } else {
-                val msg = "Failed to consume purchase: ${billingResult.responseCode}"
-                Log.e(TAG, msg)
-                billingListener?.onNotifyUser(msg)
             }
         }
     }
@@ -238,60 +164,12 @@ class BillingRepository(
         }
     }
 
-    
-    fun getUserDataDoc(uid: String): DocumentReference {
-        return firestore.collection("users")
-            .document(uid)
-            .collection("data")
-            .document("userData")
-    }
-
 
     /* Function handleBillingServiceDisconnected handles billing service disconnection
        with exponential backoff. */
     private fun handleBillingServiceDisconnected() {
-        coroutineScope.launch {
-            indexOfRetry++
-            if (indexOfRetry > maximumNumberOfRetries) {
-                Log.e(TAG, "Exceeded maximum retry attempts for BillingClient connection.")
-                withContext(Dispatchers.Main) {
-                    billingListener?.onNotifyUser(
-                        "Exceeded maximum retry attempts for BillingClient connection."
-                    )
-                }
-                return@launch
-            }
-
-            val delayBeforeRetry = minOf(
-                delayBeforeInitialRetry * (2.0.pow(indexOfRetry.toDouble())).toLong(),
-                maximumDelay
-            )
-            Log.i(
-                TAG,
-                "Retrying BillingClient connection in $delayBeforeRetry ms (Attempt $indexOfRetry)"
-            )
-            withContext(Dispatchers.Main) {
-                billingListener?.onNotifyUser(
-                    "Retrying BillingClient connection in $delayBeforeInitialRetry ms (Attempt $indexOfRetry)"
-                )
-            }
-            delay(delayBeforeRetry)
-
-            mutex.withLock {
-                if (!billingClient.isReady) {
-                    billingClient.startConnection(
-                        object : BillingClientStateListener {
-                            override fun onBillingServiceDisconnected() {
-                                handleBillingServiceDisconnected()
-                            }
-                            override fun onBillingSetupFinished(billingResult: BillingResult) {
-                                handleBillingSetupFinished(billingResult)
-                            }
-                        }
-                    )
-                }
-            }
-        }
+        Log.w(TAG, "Billing service disconnected. Trying to reconnect...")
+        connectToBillingClient(forceRetry = true)
     }
 
 
@@ -316,10 +194,8 @@ class BillingRepository(
         when (billingResult.responseCode) {
             BillingClient.BillingResponseCode.OK -> {
                 indexOfRetry = 0
-                Log.i(TAG, "BillingClient setup successful.")
-                coroutineScope.launch {
-                    checkExistingPurchasesSusp()
-                }
+                Log.i(TAG, "BillingClient setup successful. Now restoring any past purchases.")
+                restorePurchases()
             }
 
             BillingClient.BillingResponseCode.BILLING_UNAVAILABLE,
@@ -344,7 +220,6 @@ class BillingRepository(
             else -> {
                 val msg = "Billing setup failed with unknown response code: ${billingResult.responseCode}"
                 notifyOfError(msg)
-                connectToBillingClient(forceRetry = true)
             }
         }
     }
@@ -358,7 +233,6 @@ class BillingRepository(
                     if (!purchase.isAcknowledged) {
                         acknowledgePurchase(purchase)
                     } else {
-                        consumePurchase(purchase)
                         billingListener?.onPurchaseSuccess()
                     }
                 }
@@ -440,9 +314,10 @@ class BillingRepository(
                             purchase.products.contains(productId) &&
                             purchase.purchaseState == Purchase.PurchaseState.PURCHASED
                             ) {
-                            coroutineScope.launch {
-                                associatePurchaseIfNeededSusp(purchase)
-                                consumePurchase(purchase)
+                            if (!purchase.isAcknowledged) {
+                                acknowledgePurchase(purchase)
+                            } else {
+                                billingListener?.onPurchaseSuccess()
                             }
                         }
                     }
@@ -451,27 +326,6 @@ class BillingRepository(
                     Log.e(TAG, msg)
                     billingListener?.onNotifyUser(msg)
                 }
-            }
-        }
-    }
-
-
-    private suspend fun associatePurchaseIfNeededSusp(purchase: Purchase) {
-        try {
-            val docSnapshot = getUserDataDoc(usersUid).get().await()
-            val isPremium = docSnapshot.getBoolean("isPremium") ?: false
-            if (!isPremium) {
-                withContext(Dispatchers.Main) {
-                    acknowledgePurchase(purchase)
-                }
-            } else {
-                Log.i(TAG, "User already has premium status.")
-            }
-        } catch (e: Exception) {
-            val msg = "Error restoring purchase: $e"
-            Log.e(TAG, msg)
-            withContext(Dispatchers.Main) {
-                billingListener?.onNotifyUser(msg)
             }
         }
     }
